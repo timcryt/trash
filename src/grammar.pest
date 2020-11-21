@@ -1,0 +1,12 @@
+tuple = {"(" ~ " "* ~ (constr ~ " "+)* ~ constr* ~ ")"}
+call  = {" "* ~ constr ~ " "* ~ (constr ~ " "+)* ~ constr*}
+call_expr  = _{"[" ~ " "* ~ call ~ " "* ~ "]"}
+line  = _{" "* ~ call? ~ "\n"}
+clojure = @{"{" ~ " "* ~ call ~ " "* ~ "}"}
+
+string = {('a'..'z' | '0'..'9' | 'A'..'Z' | "_")+}
+ident = @{("$" |"@") ~ string}
+
+constr = _{tuple | string | ident | call_expr | clojure}
+
+code = {SOI ~ line* ~ call? ~ EOI}

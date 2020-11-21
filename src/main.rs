@@ -1,8 +1,19 @@
+#[macro_use]
+extern crate pest_derive;
+
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::prelude::*;
+
+use pest::Parser;
+
+#[derive(Parser)]
+#[grammar = "grammar.pest"]
+struct TrashParser;
 
 trait Object {
     fn clone(&self) -> Box<dyn Object>;
-    fn call(self: Box<Self>, params: Vec<Box<dyn Object>>) -> Box<dyn Object>;
+    fn call(self: Box<Self>, params: HashMap<String, Box<dyn Object>>) -> Box<dyn Object>;
     fn to_string(self: Box<Self>) -> String;
     fn to_tuple(self: Box<Self>) -> Vec<Box<dyn Object>>;
 }
@@ -12,7 +23,7 @@ impl Object for String {
         Box::new(std::clone::Clone::clone(self))
     }
 
-    fn call(self: Box<Self>, _params: Vec<Box<dyn Object>>) -> Box<dyn Object> {
+    fn call(self: Box<Self>, _params: HashMap<String, Box<dyn Object>>) -> Box<dyn Object> {
         self
     }
 
@@ -28,58 +39,100 @@ impl Object for String {
 #[derive(Clone)]
 struct Code(String);
 
+fn get_var(vars: &mut HashMap<String, Box<dyn Object>>, name: &str) -> Box<dyn Object> {
+    vars.remove(name)
+        .unwrap_or_else(|| panic!("No such variable, {}", name))
+}
+
+fn get_cloned_var(vars: &HashMap<String, Box<dyn Object>>, name: &str) -> Box<dyn Object> {
+    Object::clone(
+        vars.get(name)
+            .unwrap_or_else(|| panic!("No sush variable, {}", name))
+            .as_ref(),
+    )
+}
+
 impl Code {
     fn from_string(s: String) -> Code {
         Code(s)
     }
 
-    fn run(self, mut vars: HashMap<String, Box<dyn Object>>) -> Box<dyn Object> {
-        let r = Box::new("".to_string());
-        for line in self.0.trim().split(";") {
-            let mut tokens = line.split(' ').filter(|x| x != &"");
-            match tokens.next() {
-                Some("$set") => {
-                    let name = tokens.next().unwrap();
-                    let content = tokens.next().unwrap();
-                    match tokens.next() {
-                        Some(_) => panic!(),
-                        None => {
-                            vars.insert(name.to_string(), Box::new(content.to_string()));
-                        }
-                    }
-                }
-                Some("$puts") => {
-                    let name = tokens.next().unwrap();
+    fn parse_run(
+        pair: pest::iterators::Pair<Rule>,
+        mut vars: HashMap<String, Box<dyn Object>>,
+    ) -> (Box<dyn Object>, HashMap<String, Box<dyn Object>>) {
+        let mut r: Box<dyn Object> = Box::new("".to_string());
+        if let Rule::call = pair.as_rule() {
+            let mut inner = pair.clone().into_inner();
+            match inner.next().unwrap().as_str() {
+                "$set" => {
+                    let var_name = inner.next().unwrap().as_str().to_string();
+                    let var_value = inner.next().unwrap();
 
-                    if &name[0..=0] == "$" {
-                        match vars.remove(&name[1..]) {
-                            Some(var) => {
-                                println!("{}", var.to_string());
-                            }
-                            None => {
-                                panic!("No such variable {}", &name[1..]);
-                            }
+                    match var_value.as_rule() {
+                        Rule::string => {
+                            vars.insert(var_name, Box::new(var_value.as_str().to_string()));
                         }
-                    } else if &name[0..=0] == "@" {
-                        match vars.get(&name[1..]) {
-                            Some(var) => {
-                                println!("{}", Object::clone(var.as_ref()).to_string())
+
+                        Rule::ident => match &var_value.as_str()[0..=0] {
+                            "$" => {
+                                let obj_name = &var_value.as_str()[1..];
+                                let obj = get_var(&mut vars, obj_name);
+                                vars.insert(var_name, obj);
                             }
-                            None => {
-                                panic!("No such variable {}", &name[1..]);
+                            "@" => {
+                                let obj_name = &var_value.as_str()[1..];
+                                let obj = get_cloned_var(&vars, obj_name);
+                                vars.insert(var_name, obj);
                             }
-                        }
-                    } else {
-                        println!("{}", name);
+                            _ => unreachable!(),
+                        },
+                        _ => todo!(),
                     }
                 }
-                Some(s) => {
-                    panic!("No such command {}", s);
+                "$puts" => {
+                    for val in inner {
+                        match val.as_rule() {
+                            Rule::string => {
+                                print!("{} ", val.as_str());
+                            }
+                            Rule::ident => match &val.as_str()[0..=0] {
+                                "$" => {
+                                    print!(
+                                        "{} ",
+                                        get_var(&mut vars, &val.as_str()[1..]).to_string()
+                                    )
+                                }
+                                "@" => {
+                                    print!(
+                                        "{} ",
+                                        get_cloned_var(&mut vars, &val.as_str()[1..]).to_string()
+                                    )
+                                }
+                                _ => unreachable!(),
+                            },
+                            _ => todo!(),
+                        }
+                    }
+                    println!();
                 }
-                _ => {}
+                _ => todo!(),
             }
         }
-        r
+        for inner_pair in pair.into_inner() {
+            let x = Code::parse_run(inner_pair, vars);
+            r = x.0;
+            vars = x.1;
+        }
+        (r, vars)
+    }
+
+    fn run(self, vars: HashMap<String, Box<dyn Object>>) -> Box<dyn Object> {
+        let pair = TrashParser::parse(Rule::code, &self.0)
+            .unwrap_or_else(|e| panic!("{}", e))
+            .next()
+            .unwrap();
+        Code::parse_run(pair, vars).0
     }
 }
 
@@ -88,14 +141,8 @@ impl Object for Code {
         Box::new(std::clone::Clone::clone(self))
     }
 
-    fn call(self: Box<Self>, params: Vec<Box<dyn Object>>) -> Box<dyn Object> {
-        self.run(
-            params
-                .into_iter()
-                .enumerate()
-                .map(|(n, x)| ((n + 1).to_string(), x))
-                .collect(),
-        )
+    fn call(self: Box<Self>, params: HashMap<String, Box<dyn Object>>) -> Box<dyn Object> {
+        self.run(params)
     }
 
     fn to_string(self: Box<Self>) -> String {
@@ -110,5 +157,8 @@ impl Object for Code {
 fn main() {
     let mut s = String::new();
     std::io::stdin().read_line(&mut s).unwrap();
+    let mut f = File::open(s.trim().to_string()).unwrap();
+    let mut s = String::new();
+    f.read_to_string(&mut s).unwrap();
     println!("{}", Code::from_string(s).run(HashMap::new()).to_string());
 }
