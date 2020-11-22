@@ -1,0 +1,4 @@
+$set print {$puts $1}
+
+[@print foo]
+[@print bar]

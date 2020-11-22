@@ -1,0 +1,13 @@
+$set a 1
+$set b @a
+$puts $a $b
+
+$set c 1
+$set d @c
+$set d 2
+$puts $c $d
+
+$set e 1
+$set f @e
+$set e 2
+$puts $e $f

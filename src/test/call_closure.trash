@@ -1,0 +1,5 @@
+$set a {
+    $puts foo
+    bar}
+$puts baz
+$puts [$a]

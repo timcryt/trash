@@ -1,0 +1,4 @@
+$set a hello
+$set b [@a]
+$puts $a
+$puts $b
