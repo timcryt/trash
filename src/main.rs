@@ -13,7 +13,7 @@ struct TrashParser;
 
 trait Object {
     fn clone(&self) -> Box<dyn Object>;
-    fn call(self: Box<Self>, params: HashMap<String, Box<dyn Object>>) -> Box<dyn Object>;
+    fn call(self: Box<Self>, params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object>;
     fn to_string(self: Box<Self>) -> String;
     fn to_tuple(self: Box<Self>) -> Vec<Box<dyn Object>>;
 }
@@ -23,7 +23,7 @@ impl Object for String {
         Box::new(std::clone::Clone::clone(self))
     }
 
-    fn call(self: Box<Self>, _params: HashMap<String, Box<dyn Object>>) -> Box<dyn Object> {
+    fn call(self: Box<Self>, _params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
         self
     }
 
@@ -46,25 +46,39 @@ impl Vars {
         Vars(HashMap::new())
     }
 
-    fn with_vars(vars: HashMap<String, Box<dyn Object>>) -> Self {
-        Vars(vars)
-    }
-
     fn add(&mut self, name: String, value: Box<dyn Object>) {
         self.0.insert(name, value);
     }
 
-    fn get(&mut self, name: &str) -> Box<dyn Object> {
+    fn contains(&self, name: &str) -> bool {
+        self.0.contains_key(name)
+    } 
+
+    fn get(&mut self, scope: &&mut Vec<Self>, name: &str) -> Box<dyn Object> {
         self.0
             .remove(name)
-            .unwrap_or_else(|| panic!("No such variable, {}", name))
+            .unwrap_or_else(|| {
+                for sclvl in scope.iter().rev() {
+                    if sclvl.contains(name) {
+                        panic!("Cannot move variable {} from scope", name);
+                    }
+                }
+                panic!("No such variable, {}", name);
+            }) 
     }
 
-    fn get_cloned(&self, name: &str) -> Box<dyn Object> {
+    fn get_cloned(&self, scope: &&mut Vec<Self>, name: &str) -> Box<dyn Object> {
         Object::clone(
             self.0
                 .get(name)
-                .unwrap_or_else(|| panic!("No sush variable, {}", name))
+                .unwrap_or_else(|| {
+                    for sclvl in scope.iter().rev() {
+                        if let Some(r) = sclvl.0.get(name) {
+                            return r;
+                        }
+                    }
+                    panic!("No sush variable, {}", name)
+                })
                 .as_ref(),
         )
     }
@@ -77,22 +91,22 @@ impl Code {
 
     fn collect_args(
         args_pairs: pest::iterators::Pairs<Rule>,
-    ) -> (Box<dyn Object>, HashMap<String, Box<dyn Object>>) {
-        let mut args: HashMap<_, Box<dyn Object>> = HashMap::new();
+    ) -> (Box<dyn Object>, Vars) {
+        let mut args = Vars::new();
         for arg in args_pairs.enumerate() {
             match arg.1.as_rule() {
                 Rule::string => {
-                    args.insert(arg.0.to_string(), Box::new(arg.1.as_str().to_string()));
+                    args.add(arg.0.to_string(), Box::new(arg.1.as_str().to_string()));
                 }
                 _ => {
                     todo!();
                 }
             }
         }
-        (args.remove("0").unwrap(), args)
+        (args.get(&&mut Vec::new(), "0"), args)
     }
 
-    fn parse_run(pair: pest::iterators::Pair<Rule>, mut vars: Vars) -> (Box<dyn Object>, Vars) {
+    fn parse_run(pair: pest::iterators::Pair<Rule>, mut vars: Vars, scope: &mut Vec<Vars>) -> (Box<dyn Object>, Vars) {
         let mut r: Box<dyn Object> = Box::new("".to_string());
         for pair in pair.into_inner() {
             if let Rule::call = pair.as_rule() {
@@ -112,8 +126,8 @@ impl Code {
                             Rule::ident => {
                                 let obj_name = &var_value.as_str()[1..];
                                 let obj = match &var_value.as_str()[0..=0] {
-                                    "$" => vars.get(obj_name),
-                                    "@" => vars.get_cloned(obj_name),
+                                    "$" => vars.get(&scope, obj_name),
+                                    "@" => vars.get_cloned(&scope, obj_name),
                                     _ => unreachable!(),
                                 };
                                 vars.add(var_name, obj);
@@ -121,11 +135,17 @@ impl Code {
 
                             Rule::call => {
                                 let (obj, args) = Code::collect_args(var_value.into_inner());
-                                vars.add(var_name, obj.call(args));
+                                let var_value;
+                                scope.push(vars);
+                                var_value = obj.call(args, scope);
+                                vars = scope.pop().unwrap();
+                                vars.add(var_name, var_value);
                             }
 
                             _ => todo!(),
                         }
+
+                        r = Box::new("".to_string());
                     }
                     "$puts" => {
                         for val in inner {
@@ -138,8 +158,8 @@ impl Code {
                                     print!(
                                         "{} ",
                                         match &val.as_str()[0..=0] {
-                                            "$" => vars.get(&val.as_str()[1..]).to_string(),
-                                            "@" => vars.get_cloned(&val.as_str()[1..]).to_string(),
+                                            "$" => vars.get(&scope, &val.as_str()[1..]).to_string(),
+                                            "@" => vars.get_cloned(&scope, &val.as_str()[1..]).to_string(),
                                             _ => unreachable!(),
                                         }
                                     )
@@ -147,13 +167,17 @@ impl Code {
 
                                 Rule::call => {
                                     let (obj, args) = Code::collect_args(val.into_inner());
-                                    println!("{}", obj.call(args).to_string());
+                                    scope.push(vars);
+                                    println!("{}", obj.call(args, scope).to_string());
+                                    vars = scope.pop().unwrap();
                                 }
 
                                 _ => todo!(),
                             }
                         }
                         println!();
+
+                        r = Box::new("".to_string());
                     }
                     _ => match first.as_rule() {
                         Rule::string => {
@@ -162,7 +186,11 @@ impl Code {
 
                         Rule::call => {
                             let (obj, args) = Code::collect_args(first.into_inner());
-                            r = obj.call(args);
+                            vars = {
+                                scope.push(vars);
+                                r = obj.call(args, scope);
+                                scope.pop().unwrap()
+                            };                             
                         }
 
                         _ => {
@@ -175,12 +203,12 @@ impl Code {
         (r, vars)
     }
 
-    fn run(self, vars: Vars) -> Box<dyn Object> {
+    fn run(self, vars: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
         let pair = TrashParser::parse(Rule::code, &self.0)
             .unwrap_or_else(|e| panic!("{}", e))
             .next()
             .unwrap();
-        Code::parse_run(pair, vars).0
+        Code::parse_run(pair, vars, scope).0
     }
 }
 
@@ -189,8 +217,8 @@ impl Object for Code {
         Box::new(std::clone::Clone::clone(self))
     }
 
-    fn call(self: Box<Self>, params: HashMap<String, Box<dyn Object>>) -> Box<dyn Object> {
-        self.run(Vars::with_vars(params))
+    fn call(self: Box<Self>, params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
+        self.run(params, scope)
     }
 
     fn to_string(self: Box<Self>) -> String {
@@ -208,5 +236,5 @@ fn main() {
     let mut f = File::open(s.trim().to_string()).unwrap();
     let mut s = String::new();
     f.read_to_string(&mut s).unwrap();
-    println!("{}", Code::from_string(s).run(Vars::new()).to_string());
+    println!("{}", Code::from_string(s).run(Vars::new(), &mut Vec::new()).to_string());
 }
