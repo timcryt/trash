@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 #[macro_use]
 extern crate pest_derive;
 
@@ -183,18 +186,13 @@ impl<T: Write + Any> Code<T> {
                     "$puts" => {
                         for val in inner {
                             let write_value = match val.as_rule() {
-                                Rule::string => {
-                                    val.as_str().to_string()
-                                }
+                                Rule::string => val.as_str().to_string(),
 
-                                Rule::ident => {
-                                    match &val.as_str()[0..=0] {
-                                        "$" => vars.get(&scope, &val.as_str()[1..]).to_string(),
-                                        "@" =>
-                                            vars.get_cloned(&scope, &val.as_str()[1..]).to_string(),
-                                        _ => unreachable!(),
-                                    }
-                                }
+                                Rule::ident => match &val.as_str()[0..=0] {
+                                    "$" => vars.get(&scope, &val.as_str()[1..]).to_string(),
+                                    "@" => vars.get_cloned(&scope, &val.as_str()[1..]).to_string(),
+                                    _ => unreachable!(),
+                                },
                                 Rule::call => {
                                     let (obj, args) =
                                         self.collect_args(val.into_inner(), &mut vars, &scope);
@@ -207,7 +205,6 @@ impl<T: Write + Any> Code<T> {
                                 _ => todo!(),
                             };
                             write!(self.1.lock().unwrap(), "{} ", write_value).unwrap();
-
                         }
                         writeln!(self.1.lock().unwrap()).unwrap();
 
@@ -272,80 +269,6 @@ impl<T: Write + Any> Object for Code<T> {
 
     fn to_tuple(self: Box<Self>) -> Vec<Box<dyn Object>> {
         vec![self]
-    }
-}
-
-
-#[cfg(test)]
-mod tests {
-    use crate::{Code, Vars};
-    use std::fs::File;
-    use std::io::prelude::*;
-    use std::sync::{Arc, Mutex};
-
-    fn run_test(test_name: &str) {
-        let mut s = String::new();
-        let mut result = String::new();
-        let mut answer = String::new();
-        {
-            let filename = "src/test/".to_string() + test_name + ".trash";
-            let mut fi = File::open(&filename).unwrap();
-            fi.read_to_string(&mut s).unwrap();
-        }
-
-        {
-            let filename = "src/test/".to_string() + test_name + ".out";
-            {
-                let fo = File::create(&filename).unwrap();
-                &Code::from_string(s, Arc::new(Mutex::new(fo)))
-                    .run(Vars::new(), &mut Vec::new())
-                    .to_string()
-                    .into_bytes();
-            }
-            {
-                let mut fi = File::open(&filename).unwrap();
-                fi.read_to_string(&mut result).unwrap();
-                std::fs::remove_file(&filename).unwrap();
-            }
-        }
-
-        {
-            let filename = "src/test/".to_string() + test_name + ".ans";
-            let mut fi = File::open(&filename).unwrap();
-            fi.read_to_string(&mut answer).unwrap();
-        }
-
-        assert_eq!(result, answer);
-    }
-
-    #[test]
-    fn test_puts() {
-        run_test("puts");
-    }
-
-    #[test]
-    fn test_copy() {
-        run_test("copy");
-    }
-
-    #[test]
-    fn test_call_string() {
-        run_test("call_string");
-    }
-
-    #[test]
-    fn test_call_object() {
-        run_test("call_object");
-    }
-
-    #[test]
-    fn test_call_closure() {
-        run_test("call_closure");
-    }
-
-    #[test]
-    fn test_closure_args() {
-        run_test("closure_args");
     }
 }
 
