@@ -2,7 +2,8 @@ tuple = {"(" ~ " "* ~ (constr ~ " "+)* ~ constr* ~ ")"}
 call  = {" "* ~ constr ~ " "* ~ (constr ~ " "+)* ~ constr*}
 call_expr  = _{"[" ~ " "* ~ call ~ " "* ~ "]"}
 line  = _{" "* ~ call? ~ "\n"}
-clojure = @{"{" ~ " "* ~ call ~ " "* ~ "}"}
+clojure_inner = @{(" " | "\n")* ~ (call ~ "\n")* ~ call ~ (" " | "\n")*}
+clojure = _{"{" ~ clojure_inner ~ "}"}
 
 string = {('a'..'z' | '0'..'9' | 'A'..'Z' | "_")+}
 ident = @{("$" |"@") ~ string}

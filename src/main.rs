@@ -52,19 +52,17 @@ impl Vars {
 
     fn contains(&self, name: &str) -> bool {
         self.0.contains_key(name)
-    } 
+    }
 
     fn get(&mut self, scope: &&mut Vec<Self>, name: &str) -> Box<dyn Object> {
-        self.0
-            .remove(name)
-            .unwrap_or_else(|| {
-                for sclvl in scope.iter().rev() {
-                    if sclvl.contains(name) {
-                        panic!("Cannot move variable {} from scope", name);
-                    }
+        self.0.remove(name).unwrap_or_else(|| {
+            for sclvl in scope.iter().rev() {
+                if sclvl.contains(name) {
+                    panic!("Cannot move variable {} from scope", name);
                 }
-                panic!("No such variable, {}", name);
-            }) 
+            }
+            panic!("No such variable, {}", name);
+        })
     }
 
     fn get_cloned(&self, scope: &&mut Vec<Self>, name: &str) -> Box<dyn Object> {
@@ -91,6 +89,8 @@ impl Code {
 
     fn collect_args(
         args_pairs: pest::iterators::Pairs<Rule>,
+        vars: &mut Vars,
+        scope: &&mut Vec<Vars>,
     ) -> (Box<dyn Object>, Vars) {
         let mut args = Vars::new();
         for arg in args_pairs.enumerate() {
@@ -98,15 +98,32 @@ impl Code {
                 Rule::string => {
                     args.add(arg.0.to_string(), Box::new(arg.1.as_str().to_string()));
                 }
-                _ => {
-                    todo!();
-                }
+
+                Rule::ident => args.add(
+                    arg.0.to_string(),
+                    match &arg.1.as_str()[0..=0] {
+                        "$" => vars.get(scope, &arg.1.as_str()[1..]),
+                        "@" => vars.get_cloned(scope, &arg.1.as_str()[1..]),
+                        _ => unreachable!(),
+                    },
+                ),
+
+                Rule::clojure_inner => args.add(
+                    arg.0.to_string(),
+                    Box::new(Code::from_string(arg.1.as_str().to_string())),
+                ),
+
+                _ => todo!(),
             }
         }
         (args.get(&&mut Vec::new(), "0"), args)
     }
 
-    fn parse_run(pair: pest::iterators::Pair<Rule>, mut vars: Vars, scope: &mut Vec<Vars>) -> (Box<dyn Object>, Vars) {
+    fn parse_run(
+        pair: pest::iterators::Pair<Rule>,
+        mut vars: Vars,
+        scope: &mut Vec<Vars>,
+    ) -> (Box<dyn Object>, Vars) {
         let mut r: Box<dyn Object> = Box::new("".to_string());
         for pair in pair.into_inner() {
             if let Rule::call = pair.as_rule() {
@@ -134,12 +151,18 @@ impl Code {
                             }
 
                             Rule::call => {
-                                let (obj, args) = Code::collect_args(var_value.into_inner());
+                                let (obj, args) =
+                                    Code::collect_args(var_value.into_inner(), &mut vars, &scope);
                                 let var_value;
                                 scope.push(vars);
                                 var_value = obj.call(args, scope);
                                 vars = scope.pop().unwrap();
                                 vars.add(var_name, var_value);
+                            }
+
+                            Rule::clojure_inner => {
+                                let var_value = Code::from_string(var_value.as_str().to_string());
+                                vars.add(var_name, Box::new(var_value));
                             }
 
                             _ => todo!(),
@@ -159,16 +182,19 @@ impl Code {
                                         "{} ",
                                         match &val.as_str()[0..=0] {
                                             "$" => vars.get(&scope, &val.as_str()[1..]).to_string(),
-                                            "@" => vars.get_cloned(&scope, &val.as_str()[1..]).to_string(),
+                                            "@" => vars
+                                                .get_cloned(&scope, &val.as_str()[1..])
+                                                .to_string(),
                                             _ => unreachable!(),
                                         }
                                     )
                                 }
 
                                 Rule::call => {
-                                    let (obj, args) = Code::collect_args(val.into_inner());
+                                    let (obj, args) =
+                                        Code::collect_args(val.into_inner(), &mut vars, &scope);
                                     scope.push(vars);
-                                    println!("{}", obj.call(args, scope).to_string());
+                                    print!("{} ", obj.call(args, scope).to_string());
                                     vars = scope.pop().unwrap();
                                 }
 
@@ -185,17 +211,24 @@ impl Code {
                         }
 
                         Rule::call => {
-                            let (obj, args) = Code::collect_args(first.into_inner());
+                            let (obj, args) =
+                                Code::collect_args(first.into_inner(), &mut vars, &scope);
                             vars = {
                                 scope.push(vars);
                                 r = obj.call(args, scope);
                                 scope.pop().unwrap()
-                            };                             
+                            };
                         }
 
-                        _ => {
-                            todo!();
+                        Rule::ident => {
+                            r = match &first.as_str()[0..=0] {
+                                "$" => vars.get(&scope, &first.as_str()[1..]),
+                                "@" => vars.get_cloned(&scope, &first.as_str()[1..]),
+                                _ => unreachable!(),
+                            }
                         }
+
+                        _ => todo!(),
                     },
                 }
             }
@@ -236,5 +269,10 @@ fn main() {
     let mut f = File::open(s.trim().to_string()).unwrap();
     let mut s = String::new();
     f.read_to_string(&mut s).unwrap();
-    println!("{}", Code::from_string(s).run(Vars::new(), &mut Vec::new()).to_string());
+    println!(
+        "{}",
+        Code::from_string(s)
+            .run(Vars::new(), &mut Vec::new())
+            .to_string()
+    );
 }
