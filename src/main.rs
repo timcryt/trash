@@ -1,10 +1,11 @@
 #[macro_use]
 extern crate pest_derive;
 
+use std::any::Any;
 use std::collections::HashMap;
 use std::fs::File;
-use std::any::Any;
 use std::io::prelude::*;
+use std::sync::{Arc, Mutex};
 
 use pest::Parser;
 
@@ -38,7 +39,7 @@ impl Object for String {
 }
 
 #[derive(Clone)]
-pub struct Code<T: Write + Clone + Any>(String, T);
+pub struct Code<T: Write + Any>(String, Arc<Mutex<T>>);
 
 pub struct Vars(HashMap<String, Box<dyn Object>>);
 
@@ -83,8 +84,8 @@ impl Vars {
     }
 }
 
-impl<T: Write + Clone + Any> Code<T> {
-    pub fn from_string(s: String, out: T) -> Code<T> {
+impl<T: Write + Any> Code<T> {
+    pub fn from_string(s: String, out: Arc<Mutex<T>>) -> Code<T> {
         Code(s, out)
     }
 
@@ -112,7 +113,10 @@ impl<T: Write + Clone + Any> Code<T> {
 
                 Rule::clojure_inner => args.add(
                     arg.0.to_string(),
-                    Box::new(Code::from_string(arg.1.as_str().to_string(), std::clone::Clone::clone(&self.1))),
+                    Box::new(Code::from_string(
+                        arg.1.as_str().to_string(),
+                        <Arc<_> as std::clone::Clone>::clone(&self.1),
+                    )),
                 ),
 
                 _ => todo!(),
@@ -164,7 +168,10 @@ impl<T: Write + Clone + Any> Code<T> {
                             }
 
                             Rule::clojure_inner => {
-                                let var_value = Code::from_string(var_value.as_str().to_string(), self.1.clone());
+                                let var_value = Code::from_string(
+                                    var_value.as_str().to_string(),
+                                    self.1.clone(),
+                                );
                                 vars.add(var_name, Box::new(var_value));
                             }
 
@@ -175,37 +182,34 @@ impl<T: Write + Clone + Any> Code<T> {
                     }
                     "$puts" => {
                         for val in inner {
-                            match val.as_rule() {
+                            let write_value = match val.as_rule() {
                                 Rule::string => {
-                                    write!(self.1, "{} ", val.as_str()).unwrap();
+                                    val.as_str().to_string()
                                 }
 
                                 Rule::ident => {
-                                    write!(
-                                        self.1,
-                                        "{} ",
-                                        match &val.as_str()[0..=0] {
-                                            "$" => vars.get(&scope, &val.as_str()[1..]).to_string(),
-                                            "@" => vars
-                                                .get_cloned(&scope, &val.as_str()[1..])
-                                                .to_string(),
-                                            _ => unreachable!(),
-                                        }
-                                    ).unwrap()
+                                    match &val.as_str()[0..=0] {
+                                        "$" => vars.get(&scope, &val.as_str()[1..]).to_string(),
+                                        "@" =>
+                                            vars.get_cloned(&scope, &val.as_str()[1..]).to_string(),
+                                        _ => unreachable!(),
+                                    }
                                 }
-
                                 Rule::call => {
                                     let (obj, args) =
                                         self.collect_args(val.into_inner(), &mut vars, &scope);
                                     scope.push(vars);
-                                    write!(self.1, "{} ", obj.call(args, scope).to_string()).unwrap();
+                                    let print_val = obj.call(args, scope).to_string();
                                     vars = scope.pop().unwrap();
+                                    print_val
                                 }
 
                                 _ => todo!(),
-                            }
+                            };
+                            write!(self.1.lock().unwrap(), "{} ", write_value).unwrap();
+
                         }
-                        writeln!(self.1).unwrap();
+                        writeln!(self.1.lock().unwrap()).unwrap();
 
                         r = Box::new("".to_string());
                     }
@@ -250,9 +254,12 @@ impl<T: Write + Clone + Any> Code<T> {
     }
 }
 
-impl<T: Write + Clone + Any> Object for Code<T> {
+impl<T: Write + Any> Object for Code<T> {
     fn clone(&self) -> Box<dyn Object> {
-        Box::new(std::clone::Clone::clone(self))
+        Box::new(Code(
+            std::clone::Clone::clone(&self.0),
+            <Arc<_> as std::clone::Clone>::clone(&self.1),
+        ))
     }
 
     fn call(self: Box<Self>, params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
@@ -268,29 +275,13 @@ impl<T: Write + Clone + Any> Object for Code<T> {
     }
 }
 
-struct CloneableFile(File);
-
-impl Clone for CloneableFile {
-    fn clone(&self) -> Self {
-        CloneableFile(self.0.try_clone().unwrap())
-    }
-}
-
-impl Write for CloneableFile {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-        self.0.write(buf)
-    }
-
-    fn flush(&mut self) -> Result<(), std::io::Error> {
-        self.0.flush()
-    }
-}
 
 #[cfg(test)]
 mod tests {
-    use crate::{Code, Vars, CloneableFile};
+    use crate::{Code, Vars};
     use std::fs::File;
     use std::io::prelude::*;
+    use std::sync::{Arc, Mutex};
 
     fn run_test(test_name: &str) {
         let mut s = String::new();
@@ -305,11 +296,11 @@ mod tests {
         {
             let filename = "src/test/".to_string() + test_name + ".out";
             {
-                let fo = CloneableFile(File::create(&filename).unwrap());
-                    &Code::from_string(s, fo)
-                        .run(Vars::new(), &mut Vec::new())
-                        .to_string()
-                        .into_bytes();
+                let fo = File::create(&filename).unwrap();
+                &Code::from_string(s, Arc::new(Mutex::new(fo)))
+                    .run(Vars::new(), &mut Vec::new())
+                    .to_string()
+                    .into_bytes();
             }
             {
                 let mut fi = File::open(&filename).unwrap();
@@ -366,7 +357,7 @@ fn main() {
     f.read_to_string(&mut s).unwrap();
     println!(
         "{}",
-        Code::from_string(s, CloneableFile(File::open("/dev/stdout").unwrap()))
+        Code::from_string(s, Arc::new(Mutex::new(std::io::stdout())))
             .run(Vars::new(), &mut Vec::new())
             .to_string()
     );
