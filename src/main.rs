@@ -55,13 +55,15 @@ impl Vars {
     }
 
     fn get(&mut self, name: &str) -> Box<dyn Object> {
-        self.0.remove(name)
+        self.0
+            .remove(name)
             .unwrap_or_else(|| panic!("No such variable, {}", name))
     }
 
     fn get_cloned(&self, name: &str) -> Box<dyn Object> {
         Object::clone(
-            self.0.get(name)
+            self.0
+                .get(name)
                 .unwrap_or_else(|| panic!("No sush variable, {}", name))
                 .as_ref(),
         )
@@ -73,72 +75,127 @@ impl Code {
         Code(s)
     }
 
-    fn parse_run(
-        pair: pest::iterators::Pair<Rule>,
-        mut vars: Vars,
-    ) -> (Box<dyn Object>, Vars) {
+    fn parse_run(pair: pest::iterators::Pair<Rule>, mut vars: Vars) -> (Box<dyn Object>, Vars) {
         let mut r: Box<dyn Object> = Box::new("".to_string());
-        if let Rule::call = pair.as_rule() {
-            let mut inner = pair.clone().into_inner();
-            match inner.next().unwrap().as_str() {
-                "$set" => {
-                    let var_name = inner.next().unwrap().as_str().to_string();
-                    let var_value = inner.next().unwrap();
+        for pair in pair.into_inner() {
+            if let Rule::call = pair.as_rule() {
+                let mut inner = pair.into_inner();
 
-                    match var_value.as_rule() {
-                        Rule::string => {
-                            vars.add(var_name, Box::new(var_value.as_str().to_string()));
-                        }
+                let first = inner.next().unwrap();
+                match first.as_str() {
+                    "$set" => {
+                        let var_name = inner.next().unwrap().as_str().to_string();
+                        let var_value = inner.next().unwrap();
 
-                        Rule::ident => match &var_value.as_str()[0..=0] {
-                            "$" => {
-                                let obj_name = &var_value.as_str()[1..];
-                                let obj = vars.get(obj_name);
-                                vars.add(var_name, obj);
-                            }
-                            "@" => {
-                                let obj_name = &var_value.as_str()[1..];
-                                let obj = vars.get_cloned(obj_name);
-                                vars.add(var_name, obj);
-                            }
-                            _ => unreachable!(),
-                        },
-                        _ => todo!(),
-                    }
-                }
-                "$puts" => {
-                    for val in inner {
-                        match val.as_rule() {
+                        match var_value.as_rule() {
                             Rule::string => {
-                                print!("{} ", val.as_str());
+                                vars.add(var_name, Box::new(var_value.as_str().to_string()));
                             }
-                            Rule::ident => match &val.as_str()[0..=0] {
-                                "$" => {
-                                    print!(
-                                        "{} ",
-                                        vars.get(&val.as_str()[1..]).to_string()
-                                    )
+
+                            Rule::ident => {
+                                let obj_name = &var_value.as_str()[1..];
+                                let obj = match &var_value.as_str()[0..=0] {
+                                    "$" => vars.get(obj_name),
+                                    "@" => vars.get_cloned(obj_name),
+                                    _ => unreachable!(),
+                                };
+                                vars.add(var_name, obj);
+                            }
+
+                            Rule::call => {
+                                let mut args: HashMap<_, Box<dyn Object>> = HashMap::new();
+                                for arg in var_value.into_inner().enumerate() {
+                                    match arg.1.as_rule() {
+                                        Rule::string => {
+                                            args.insert(
+                                                arg.0.to_string(),
+                                                Box::new(arg.1.as_str().to_string()),
+                                            );
+                                        }
+                                        _ => {
+                                            todo!();
+                                        }
+                                    }
                                 }
-                                "@" => {
-                                    print!(
-                                        "{} ",
-                                        vars.get_cloned(&val.as_str()[1..]).to_string()
-                                    )
-                                }
-                                _ => unreachable!(),
-                            },
+                                vars.add(var_name, args.remove("0").unwrap().call(args));
+                            }
+
                             _ => todo!(),
                         }
                     }
-                    println!();
+                    "$puts" => {
+                        for val in inner {
+                            match val.as_rule() {
+                                Rule::string => {
+                                    print!("{} ", val.as_str());
+                                }
+
+                                Rule::ident => {
+                                    print!(
+                                        "{} ",
+                                        match &val.as_str()[0..=0] {
+                                            "$" => vars.get(&val.as_str()[1..]).to_string(),
+                                            "@" => vars.get_cloned(&val.as_str()[1..]).to_string(),
+                                            _ => unreachable!(),
+                                        }
+                                    )
+                                }
+
+                                Rule::call => {
+                                    let mut args: HashMap<_, Box<dyn Object>> = HashMap::new();
+                                    for arg in val.into_inner().enumerate() {
+                                        match arg.1.as_rule() {
+                                            Rule::string => {
+                                                args.insert(
+                                                    arg.0.to_string(),
+                                                    Box::new(arg.1.as_str().to_string()),
+                                                );
+                                            }
+                                            _ => {
+                                                todo!();
+                                            }
+                                        }
+                                    }
+                                    println!(
+                                        "{}",
+                                        args.remove("0").unwrap().call(args).to_string()
+                                    );
+                                }
+
+                                _ => todo!(),
+                            }
+                        }
+                        println!();
+                    }
+                    _ => match first.as_rule() {
+                        Rule::string => {
+                            r = Box::new(first.as_str().to_string());
+                        }
+
+                        Rule::call => {
+                            let mut args: HashMap<_, Box<dyn Object>> = HashMap::new();
+                            for arg in first.into_inner().enumerate() {
+                                match arg.1.as_rule() {
+                                    Rule::string => {
+                                        args.insert(
+                                            arg.0.to_string(),
+                                            Box::new(arg.1.as_str().to_string()),
+                                        );
+                                    }
+                                    _ => {
+                                        todo!();
+                                    }
+                                }
+                            }
+                            r = args.remove("0").unwrap().call(args)
+                        }
+
+                        _ => {
+                            todo!();
+                        }
+                    },
                 }
-                _ => todo!(),
             }
-        }
-        for inner_pair in pair.into_inner() {
-            let x = Code::parse_run(inner_pair, vars);
-            r = x.0;
-            vars = x.1;
         }
         (r, vars)
     }
