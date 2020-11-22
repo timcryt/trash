@@ -75,6 +75,23 @@ impl Code {
         Code(s)
     }
 
+    fn collect_args(
+        args_pairs: pest::iterators::Pairs<Rule>,
+    ) -> (Box<dyn Object>, HashMap<String, Box<dyn Object>>) {
+        let mut args: HashMap<_, Box<dyn Object>> = HashMap::new();
+        for arg in args_pairs.enumerate() {
+            match arg.1.as_rule() {
+                Rule::string => {
+                    args.insert(arg.0.to_string(), Box::new(arg.1.as_str().to_string()));
+                }
+                _ => {
+                    todo!();
+                }
+            }
+        }
+        (args.remove("0").unwrap(), args)
+    }
+
     fn parse_run(pair: pest::iterators::Pair<Rule>, mut vars: Vars) -> (Box<dyn Object>, Vars) {
         let mut r: Box<dyn Object> = Box::new("".to_string());
         for pair in pair.into_inner() {
@@ -103,21 +120,8 @@ impl Code {
                             }
 
                             Rule::call => {
-                                let mut args: HashMap<_, Box<dyn Object>> = HashMap::new();
-                                for arg in var_value.into_inner().enumerate() {
-                                    match arg.1.as_rule() {
-                                        Rule::string => {
-                                            args.insert(
-                                                arg.0.to_string(),
-                                                Box::new(arg.1.as_str().to_string()),
-                                            );
-                                        }
-                                        _ => {
-                                            todo!();
-                                        }
-                                    }
-                                }
-                                vars.add(var_name, args.remove("0").unwrap().call(args));
+                                let (obj, args) = Code::collect_args(var_value.into_inner());
+                                vars.add(var_name, obj.call(args));
                             }
 
                             _ => todo!(),
@@ -142,24 +146,8 @@ impl Code {
                                 }
 
                                 Rule::call => {
-                                    let mut args: HashMap<_, Box<dyn Object>> = HashMap::new();
-                                    for arg in val.into_inner().enumerate() {
-                                        match arg.1.as_rule() {
-                                            Rule::string => {
-                                                args.insert(
-                                                    arg.0.to_string(),
-                                                    Box::new(arg.1.as_str().to_string()),
-                                                );
-                                            }
-                                            _ => {
-                                                todo!();
-                                            }
-                                        }
-                                    }
-                                    println!(
-                                        "{}",
-                                        args.remove("0").unwrap().call(args).to_string()
-                                    );
+                                    let (obj, args) = Code::collect_args(val.into_inner());
+                                    println!("{}", obj.call(args).to_string());
                                 }
 
                                 _ => todo!(),
@@ -173,21 +161,8 @@ impl Code {
                         }
 
                         Rule::call => {
-                            let mut args: HashMap<_, Box<dyn Object>> = HashMap::new();
-                            for arg in first.into_inner().enumerate() {
-                                match arg.1.as_rule() {
-                                    Rule::string => {
-                                        args.insert(
-                                            arg.0.to_string(),
-                                            Box::new(arg.1.as_str().to_string()),
-                                        );
-                                    }
-                                    _ => {
-                                        todo!();
-                                    }
-                                }
-                            }
-                            r = args.remove("0").unwrap().call(args)
+                            let (obj, args) = Code::collect_args(first.into_inner());
+                            r = obj.call(args);
                         }
 
                         _ => {
