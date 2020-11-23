@@ -1,0 +1,5 @@
+$set a foo
+$set b {$puts @a}
+@b
+$set a bar
+@b

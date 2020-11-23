@@ -1,0 +1,2 @@
+{$puts $1} foo
+{$puts $1} bar

@@ -1,4 +1,3 @@
-
 use crate::{Code, Vars};
 use std::fs::File;
 use std::io::prelude::*;
@@ -67,4 +66,14 @@ fn test_call_closure() {
 #[test]
 fn test_closure_args() {
     run_test("closure_args");
+}
+
+#[test]
+fn test_call_raw_closure() {
+    run_test("call_raw_closure")
+}
+
+#[test]
+fn test_closure_scope() {
+    run_test("closure_scope")
 }
