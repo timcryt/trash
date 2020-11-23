@@ -87,3 +87,8 @@ fn test_quoted_strings() {
 fn test_multiple_assign() {
     run_test("multiple_assign")
 }
+
+#[test]
+fn test_nested_assign() {
+    run_test("nested_assign")
+}

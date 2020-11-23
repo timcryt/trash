@@ -1,0 +1,5 @@
+$set ((a b) (c d) (e f)) ((foo bar) ([foo] [bar]) ({$puts foo} {$puts bar}))
+$puts $a $b
+$puts $c $d
+$e
+$f
