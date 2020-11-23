@@ -1,4 +1,5 @@
 # Trash
+[![Github Actions][img_gh-actions]][gh-actions]
 
 Trash is simple and extensible programming language. It is something between Haskell, Tcl and Forth porgramming languages.
 
@@ -22,3 +23,7 @@ Now, trash interpreter is in pre-alpha version, so most of language features, su
 - calling string variables and strings (any string returns itself)
 - assigning closures to variables and calling them
 - calling raw closures
+
+
+[gh-actions]: https://github.com/timcryt/trash/actions?query=workflow%3ARust
+[img_gh-actions]: https://github.com/timcryt/trash/workflows/Rust/badge.svg
