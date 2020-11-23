@@ -5,9 +5,12 @@ line  = _{" "* ~ call? ~ "\n"}
 clojure_inner = @{(" " | "\n")* ~ (call ~ "\n")* ~ call ~ (" " | "\n")*}
 clojure = _{"{" ~ clojure_inner ~ "}"}
 
+literal = _{"\"" ~ literal_inner ~ "\""}
+literal_inner = @{(!"\"" ~ ANY)+}
+
 string = {('a'..'z' | '0'..'9' | 'A'..'Z' | "_")+}
 ident = @{("$" |"@") ~ string}
 
-constr = _{tuple | string | ident | call_expr | clojure}
+constr = _{tuple | string | literal | ident | call_expr | clojure}
 
 code = {SOI ~ line* ~ call? ~ EOI}

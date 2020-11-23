@@ -105,6 +105,10 @@ impl<T: Write + Any> Code<T> {
                     args.add(arg.0.to_string(), Box::new(arg.1.as_str().to_string()));
                 }
 
+                Rule::literal_inner => {
+                    args.add(arg.0.to_string(), Box::new(arg.1.as_str().to_string()));
+                }
+
                 Rule::ident => args.add(
                     arg.0.to_string(),
                     match &arg.1.as_str()[0..=0] {
@@ -146,6 +150,8 @@ impl<T: Write + Any> Code<T> {
     ) -> (Box<dyn Object>, Vars) {
         match value.as_rule() {
             Rule::string => (Box::new(value.as_str().to_string()), vars),
+
+            Rule::literal_inner => (Box::new(value.as_str().to_string()), vars),
 
             Rule::ident => {
                 let obj_name = &value.as_str()[1..];
