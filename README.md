@@ -18,7 +18,7 @@ which generate strctures and enums) haven't been implemented yet.
 
 ### Which featires are working now?
 
-- `$set` operator (withot multiple assignment)
+- `$set` operator (with multiple assignment (not not nested))
 - `$puts` operator (also with several arguments)
 - unquoted strings (may contain only ASCII alphanumeric symbols)
 - string variables (also quoted strings (without any escape characters))
