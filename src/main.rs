@@ -92,12 +92,12 @@ impl<T: Write + Any> Code<T> {
         Code(s, out)
     }
 
-    fn collect_args(
+    fn collect_args<'a>(
         &self,
-        args_pairs: pest::iterators::Pairs<Rule>,
-        vars: &mut Vars,
-        scope: &&mut Vec<Vars>,
-    ) -> (Box<dyn Object>, Vars) {
+        args_pairs: impl Iterator<Item = pest::iterators::Pair<'a, Rule>>,
+        mut vars: Vars,
+        scope: &mut Vec<Vars>,
+    ) -> (Box<dyn Object>, Vars, Vars) {
         let mut args = Vars::new();
         for arg in args_pairs.enumerate() {
             match arg.1.as_rule() {
@@ -108,8 +108,8 @@ impl<T: Write + Any> Code<T> {
                 Rule::ident => args.add(
                     arg.0.to_string(),
                     match &arg.1.as_str()[0..=0] {
-                        "$" => vars.get(scope, &arg.1.as_str()[1..]),
-                        "@" => vars.get_cloned(scope, &arg.1.as_str()[1..]),
+                        "$" => vars.get(&scope, &arg.1.as_str()[1..]),
+                        "@" => vars.get_cloned(&scope, &arg.1.as_str()[1..]),
                         _ => unreachable!(),
                     },
                 ),
@@ -122,10 +122,63 @@ impl<T: Write + Any> Code<T> {
                     )),
                 ),
 
+                Rule::call => {
+                    let (obj, call_args, x) = self.collect_args(arg.1.into_inner(), vars, scope);
+                    vars = x;
+                    let value;
+                    scope.push(vars);
+                    value = obj.call(call_args, scope);
+                    vars = scope.pop().unwrap();
+                    args.add(arg.0.to_string(), value);
+                }
+
                 _ => todo!(),
             }
         }
-        (args.get(&&mut Vec::new(), "0"), args)
+        (args.get(&&mut Vec::new(), "0"), args, vars)
+    }
+
+    fn get_value(
+        &mut self,
+        value: pest::iterators::Pair<Rule>,
+        mut vars: Vars,
+        scope: &mut Vec<Vars>,
+    ) -> (Box<dyn Object>, Vars) {
+        match value.as_rule() {
+            Rule::string => (Box::new(value.as_str().to_string()), vars),
+
+            Rule::ident => {
+                let obj_name = &value.as_str()[1..];
+                (
+                    match &value.as_str()[0..=0] {
+                        "$" => vars.get(&scope, obj_name),
+                        "@" => vars.get_cloned(&scope, obj_name),
+                        _ => unreachable!(),
+                    },
+                    vars,
+                )
+            }
+
+            Rule::call => {
+                let (obj, args, x) = self.collect_args(value.into_inner(), vars, scope);
+                vars = x;
+                let var_value;
+                scope.push(vars);
+                var_value = obj.call(args, scope);
+                vars = scope.pop().unwrap();
+                (var_value, vars)
+            }
+
+            Rule::clojure_inner => (
+                Box::new(Code::from_string(
+                    value.as_str().to_string(),
+                    self.1.clone(),
+                )),
+                vars,
+            ),
+
+            _ => todo!(),
+        }
     }
 
     fn parse_run(
@@ -145,96 +198,34 @@ impl<T: Write + Any> Code<T> {
                         let var_name = inner.next().unwrap().as_str().to_string();
                         let var_value = inner.next().unwrap();
 
-                        match var_value.as_rule() {
-                            Rule::string => {
-                                vars.add(var_name, Box::new(var_value.as_str().to_string()));
-                            }
-
-                            Rule::ident => {
-                                let obj_name = &var_value.as_str()[1..];
-                                let obj = match &var_value.as_str()[0..=0] {
-                                    "$" => vars.get(&scope, obj_name),
-                                    "@" => vars.get_cloned(&scope, obj_name),
-                                    _ => unreachable!(),
-                                };
-                                vars.add(var_name, obj);
-                            }
-
-                            Rule::call => {
-                                let (obj, args) =
-                                    self.collect_args(var_value.into_inner(), &mut vars, &scope);
-                                let var_value;
-                                scope.push(vars);
-                                var_value = obj.call(args, scope);
-                                vars = scope.pop().unwrap();
-                                vars.add(var_name, var_value);
-                            }
-
-                            Rule::clojure_inner => {
-                                let var_value = Code::from_string(
-                                    var_value.as_str().to_string(),
-                                    self.1.clone(),
-                                );
-                                vars.add(var_name, Box::new(var_value));
-                            }
-
-                            _ => todo!(),
-                        }
+                        let x = self.get_value(var_value, vars, scope);
+                        vars = x.1;
+                        vars.add(var_name, x.0);
 
                         r = Box::new("".to_string());
                     }
+
                     "$puts" => {
                         for val in inner {
-                            let write_value = match val.as_rule() {
-                                Rule::string => val.as_str().to_string(),
-
-                                Rule::ident => match &val.as_str()[0..=0] {
-                                    "$" => vars.get(&scope, &val.as_str()[1..]).to_string(),
-                                    "@" => vars.get_cloned(&scope, &val.as_str()[1..]).to_string(),
-                                    _ => unreachable!(),
-                                },
-                                Rule::call => {
-                                    let (obj, args) =
-                                        self.collect_args(val.into_inner(), &mut vars, &scope);
-                                    scope.push(vars);
-                                    let print_val = obj.call(args, scope).to_string();
-                                    vars = scope.pop().unwrap();
-                                    print_val
-                                }
-
-                                _ => todo!(),
-                            };
+                            let write_value = {
+                                let x = self.get_value(val, vars, scope);
+                                vars = x.1;
+                                x.0
+                            }
+                            .to_string();
                             write!(self.1.lock().unwrap(), "{} ", write_value).unwrap();
                         }
                         writeln!(self.1.lock().unwrap()).unwrap();
 
                         r = Box::new("".to_string());
                     }
-                    _ => match first.as_rule() {
-                        Rule::string => {
-                            r = Box::new(first.as_str().to_string());
-                        }
-
-                        Rule::call => {
-                            let (obj, args) =
-                                self.collect_args(first.into_inner(), &mut vars, &scope);
-                            vars = {
-                                scope.push(vars);
-                                r = obj.call(args, scope);
-                                scope.pop().unwrap()
-                            };
-                        }
-
-                        Rule::ident => {
-                            r = match &first.as_str()[0..=0] {
-                                "$" => vars.get(&scope, &first.as_str()[1..]),
-                                "@" => vars.get_cloned(&scope, &first.as_str()[1..]),
-                                _ => unreachable!(),
-                            }
-                        }
-
-                        _ => todo!(),
-                    },
+                    _ => {
+                        let (obj, args, x) =
+                            self.collect_args(Some(first).into_iter().chain(inner), vars, scope);
+                        scope.push(x);
+                        r = obj.call(args, scope);
+                        vars = scope.pop().unwrap();
+                    }
                 }
             }
         }
