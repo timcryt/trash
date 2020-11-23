@@ -283,9 +283,9 @@ impl<T: Write + Any> Code<T> {
                                 x.0
                             }
                             .to_string();
-                            write!(self.1.lock().unwrap(), "{} ", write_value).unwrap();
+                            write!(self.1.lock().unwrap(), "{} ", write_value).unwrap_or_else(|x| panic!("IO error: {}", x));
                         }
-                        writeln!(self.1.lock().unwrap()).unwrap();
+                        writeln!(self.1.lock().unwrap()).unwrap_or_else(|x| panic!("IO error! {}", x));
 
                         r = Box::new("".to_string());
                     }
