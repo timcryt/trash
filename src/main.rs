@@ -223,6 +223,40 @@ impl<T: Write + Any> Code<T> {
         }
     }
 
+    fn exec_set(
+        &mut self,
+        mut vars: Vars,
+        names: pest::iterators::Pair<Rule>,
+        values: Box<dyn Object>,
+    ) -> Vars {
+        match names.as_rule() {
+            Rule::string => {
+                vars.add(names.as_str().to_string(), values);
+            }
+
+            Rule::tuple => {
+                let names = names.into_inner().collect::<Vec<_>>();
+                let values = values.to_tuple();
+                if names.len() == values.len() {
+                    for (name, value) in names.into_iter().zip(values.into_iter()) {
+                        vars = self.exec_set(vars, name, value);
+                    }
+                } else {
+                    panic!(
+                        "Error in set operator, expected tuple with length {}, found tuple with length {}",
+                        names.len(),
+                        values.len()
+                    );
+                }
+            }
+
+            other => {
+                panic!("Expected string or tuple, found {:?}", other);
+            }
+        }
+        vars
+    }
+
     fn parse_run(
         &mut self,
         pair: pest::iterators::Pair<Rule>,
@@ -237,41 +271,12 @@ impl<T: Write + Any> Code<T> {
                 let first = inner.next().unwrap();
                 match first.as_str() {
                     "$set" => {
-                        let var_name = inner.next().unwrap();
-                        match var_name.as_rule() {
-                            Rule::string => {
-                                let var_value = inner.next().unwrap();
-                                let x = self.get_value(var_value, vars, scope);
-                                vars = x.1;
-                                vars.add(var_name.as_str().to_string(), x.0);
-                            }
-                            Rule::tuple => {
-                                let mut var_names = Vec::new();
-                                for name in var_name.into_inner() {
-                                    match name.as_rule() {
-                                        Rule::string => {
-                                            var_names.push(name.as_str().to_string())
-                                        }
-                                        Rule::tuple => todo!(),
-                                        _ => panic!("Error: tuple can only contains variables names or other tuples"),
-                                    }
-                                }
+                        let names = inner.next().unwrap();
+                        let values = inner.next().unwrap();
+                        let x = self.get_value(values, vars, scope);
 
-                                let var_value = inner.next().unwrap();
-                                let x = self.get_value(var_value, vars, scope);
-                                vars = x.1;
-                                let var_values = x.0.to_tuple();
-                                if var_values.len() != var_names.len() {
-                                    panic!("Error: tuple contains different number of variables, expected {}, found {}", var_names.len(), var_names.len());
-                                }
-                                for pair in var_names.into_iter().zip(var_values.into_iter()) {
-                                    vars.add(pair.0, pair.1);
-                                }
-                            }
-                            _ => panic!(
-                                "Error: $set statemnt can assign only to variables or tubples"
-                            ),
-                        }
+                        vars = x.1;
+                        vars = self.exec_set(vars, names, x.0);
 
                         r = Box::new("".to_string());
                     }
