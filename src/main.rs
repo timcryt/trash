@@ -41,6 +41,32 @@ impl Object for String {
     }
 }
 
+impl Object for Vec<Box<dyn Object>> {
+    fn clone(&self) -> Box<dyn Object> {
+        let mut cloned = Vec::new();
+        for el in self {
+            cloned.push(Object::clone(el.as_ref()));
+        }
+        Box::new(cloned)
+    }
+
+    fn call(self: Box<Self>, _params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
+        self
+    }
+
+    fn to_string(self: Box<Self>) -> String {
+        let mut s = "( ".to_string();
+        for el in self.into_iter() {
+            s += &el.to_string();
+        }
+        s
+    }
+
+    fn to_tuple(self: Box<Self>) -> Vec<Box<dyn Object>> {
+        *self
+    }
+}
+
 #[derive(Clone)]
 pub struct Code<T: Write + Any>(String, Arc<Mutex<T>>);
 
@@ -183,6 +209,16 @@ impl<T: Write + Any> Code<T> {
                 vars,
             ),
 
+            Rule::tuple => {
+                let mut tup = Vec::new();
+                for el in value.into_inner() {
+                    let x = self.get_value(el, vars, scope);
+                    vars = x.1;
+                    tup.push(x.0);
+                }
+                (Box::new(tup), vars)
+            }
+
             _ => todo!(),
         }
     }
@@ -201,12 +237,40 @@ impl<T: Write + Any> Code<T> {
                 let first = inner.next().unwrap();
                 match first.as_str() {
                     "$set" => {
-                        let var_name = inner.next().unwrap().as_str().to_string();
-                        let var_value = inner.next().unwrap();
+                        let var_name = inner.next().unwrap();
+                        match var_name.as_rule() {
+                            Rule::string => {
+                                let var_value = inner.next().unwrap();
+                                let x = self.get_value(var_value, vars, scope);
+                                vars = x.1;
+                                vars.add(var_name.as_str().to_string(), x.0);                                
+                            },
+                            Rule::tuple => {
+                                let mut var_names = Vec::new();
+                                for name in var_name.into_inner() {
+                                    match name.as_rule() {
+                                        Rule::string => {
+                                            var_names.push(name.as_str().to_string())
+                                        }
+                                        Rule::tuple => todo!(),
+                                        _ => panic!("Error: tuple can only contains variables names or other tuples"),
+                                    }
+                                }
 
-                        let x = self.get_value(var_value, vars, scope);
-                        vars = x.1;
-                        vars.add(var_name, x.0);
+                                let var_value = inner.next().unwrap();
+                                let x = self.get_value(var_value, vars, scope);
+                                vars = x.1;
+                                let var_values = x.0.to_tuple();
+                                if var_values.len() != var_names.len() {
+                                    panic!("Error: tuple contains different number of variables, expected {}, found {}", var_names.len(), var_names.len());
+                                }
+                                for pair in var_names.into_iter().zip(var_values.into_iter()) {
+                                    vars.add(pair.0, pair.1);
+                                }
+
+                            },
+                            _ => panic!("Error: $set statemnt can assign only to variables or tubples"),
+                        }
 
                         r = Box::new("".to_string());
                     }
