@@ -11,7 +11,7 @@ $puts "Hello, world!"
 
 ### Why this hello world programm doesn't work
 
-Now, trash interpreter is in pre-alpha version, so most of language features, such as queted strings, aren't work.
+Now, trash interpreter is in pre-alpha version, so most of language features, such as quoted strings, aren't work.
 
 ### And which featires are working now?
 
@@ -20,3 +20,5 @@ Now, trash interpreter is in pre-alpha version, so most of language features, su
 - unquoted strings (may contain only ASCII alphanumeric symbols)
 - string variables
 - calling string variables and strings (any string returns itself)
+- assigning closures to variables and calling them
+- calling raw closures
