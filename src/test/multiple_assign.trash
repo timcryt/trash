@@ -1,0 +1,6 @@
+$set (a b) ("Hello," ["world!"])
+$puts $a $b
+
+$set (a b) ({$puts "foo"} {$puts "bar"})
+$a
+$b

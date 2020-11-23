@@ -82,3 +82,8 @@ fn test_closure_scope() {
 fn test_quoted_strings() {
     run_test("quoted_strings")
 }
+
+#[test]
+fn test_multiple_assign() {
+    run_test("multiple_assign")
+}
