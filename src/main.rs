@@ -243,8 +243,8 @@ impl<T: Write + Any> Code<T> {
                                 let var_value = inner.next().unwrap();
                                 let x = self.get_value(var_value, vars, scope);
                                 vars = x.1;
-                                vars.add(var_name.as_str().to_string(), x.0);                                
-                            },
+                                vars.add(var_name.as_str().to_string(), x.0);
+                            }
                             Rule::tuple => {
                                 let mut var_names = Vec::new();
                                 for name in var_name.into_inner() {
@@ -267,9 +267,10 @@ impl<T: Write + Any> Code<T> {
                                 for pair in var_names.into_iter().zip(var_values.into_iter()) {
                                     vars.add(pair.0, pair.1);
                                 }
-
-                            },
-                            _ => panic!("Error: $set statemnt can assign only to variables or tubples"),
+                            }
+                            _ => panic!(
+                                "Error: $set statemnt can assign only to variables or tubples"
+                            ),
                         }
 
                         r = Box::new("".to_string());
@@ -283,9 +284,11 @@ impl<T: Write + Any> Code<T> {
                                 x.0
                             }
                             .to_string();
-                            write!(self.1.lock().unwrap(), "{} ", write_value).unwrap_or_else(|x| panic!("IO error: {}", x));
+                            write!(self.1.lock().unwrap(), "{} ", write_value)
+                                .unwrap_or_else(|x| panic!("IO error: {}", x));
                         }
-                        writeln!(self.1.lock().unwrap()).unwrap_or_else(|x| panic!("IO error! {}", x));
+                        writeln!(self.1.lock().unwrap())
+                            .unwrap_or_else(|x| panic!("IO error! {}", x));
 
                         r = Box::new("".to_string());
                     }
