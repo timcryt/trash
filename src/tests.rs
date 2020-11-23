@@ -77,3 +77,8 @@ fn test_call_raw_closure() {
 fn test_closure_scope() {
     run_test("closure_scope")
 }
+
+#[test]
+fn test_quoted_strings() {
+    run_test("quoted_strings")
+}

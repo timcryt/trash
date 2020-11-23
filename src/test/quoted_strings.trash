@@ -1,0 +1,10 @@
+$set a "Hello, world!"
+$puts $a
+
+$set b ["Hello, world!"]
+$puts $b
+
+$set c {"Hello, world!"}
+$puts [$c]
+
+{$puts "Hello, world!"}
