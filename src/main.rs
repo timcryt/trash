@@ -119,51 +119,16 @@ impl<T: Write + Any> Code<T> {
     }
 
     fn collect_args<'a>(
-        &self,
+        &mut self,
         args_pairs: impl Iterator<Item = pest::iterators::Pair<'a, Rule>>,
         mut vars: Vars,
         scope: &mut Vec<Vars>,
     ) -> (Box<dyn Object>, Vars, Vars) {
         let mut args = Vars::new();
-        for arg in args_pairs.enumerate() {
-            match arg.1.as_rule() {
-                Rule::string => {
-                    args.add(arg.0.to_string(), Box::new(arg.1.as_str().to_string()));
-                }
-
-                Rule::literal_inner => {
-                    args.add(arg.0.to_string(), Box::new(arg.1.as_str().to_string()));
-                }
-
-                Rule::ident => args.add(
-                    arg.0.to_string(),
-                    match &arg.1.as_str()[0..=0] {
-                        "$" => vars.get(&scope, &arg.1.as_str()[1..]),
-                        "@" => vars.get_cloned(&scope, &arg.1.as_str()[1..]),
-                        _ => unreachable!(),
-                    },
-                ),
-
-                Rule::clojure_inner => args.add(
-                    arg.0.to_string(),
-                    Box::new(Code::from_string(
-                        arg.1.as_str().to_string(),
-                        <Arc<_> as std::clone::Clone>::clone(&self.1),
-                    )),
-                ),
-
-                Rule::call => {
-                    let (obj, call_args, x) = self.collect_args(arg.1.into_inner(), vars, scope);
-                    vars = x;
-                    let value;
-                    scope.push(vars);
-                    value = obj.call(call_args, scope);
-                    vars = scope.pop().unwrap();
-                    args.add(arg.0.to_string(), value);
-                }
-
-                _ => todo!(),
-            }
+        for (arg_name, arg_value) in args_pairs.enumerate() {
+            let x = self.get_value(arg_value, vars, scope);
+            vars = x.1;
+            args.add(arg_name.to_string(), x.0);
         }
         (args.get(&&mut Vec::new(), "0"), args, vars)
     }
