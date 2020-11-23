@@ -10,16 +10,18 @@ Hello world:
 $puts "Hello, world!"
 ```
 
-### Why this hello world programm doesn't work
+## State
 
-Now, trash interpreter is in pre-alpha version, so most of language features, such as quoted strings, aren't work.
+Now, trash interpreter is in alpha-testing version, most of core features (such as `$set` statement, quoted strings 
+parsing and clousre calling) are implemented, but all of standart features (`@if` function, `@while` function, functions,
+which generate strctures and enums) haven't been implemented yet.
 
-### And which featires are working now?
+### Which featires are working now?
 
 - `$set` operator (withot multiple assignment)
 - `$puts` operator (also with several arguments)
 - unquoted strings (may contain only ASCII alphanumeric symbols)
-- string variables
+- string variables (also quoted strings (without any escape characters))
 - calling string variables and strings (any string returns itself)
 - assigning closures to variables and calling them
 - calling raw closures
