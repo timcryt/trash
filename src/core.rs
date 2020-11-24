@@ -23,15 +23,15 @@ impl Vars {
         Vars(HashMap::new())
     }
 
-    fn add(&mut self, name: String, value: Box<dyn Object>) {
+    pub fn add(&mut self, name: String, value: Box<dyn Object>) {
         self.0.insert(name, value);
     }
 
-    fn contains(&self, name: &str) -> bool {
+    pub fn contains(&self, name: &str) -> bool {
         self.0.contains_key(name)
     }
 
-    fn get(&mut self, scope: &&mut Vec<Self>, name: &str) -> Box<dyn Object> {
+    pub fn get(&mut self, scope: &&mut Vec<Self>, name: &str) -> Box<dyn Object> {
         self.0.remove(name).unwrap_or_else(|| {
             for sclvl in scope.iter().rev() {
                 if sclvl.contains(name) {
@@ -42,7 +42,7 @@ impl Vars {
         })
     }
 
-    fn get_cloned(&self, scope: &&mut Vec<Self>, name: &str) -> Box<dyn Object> {
+    pub fn get_cloned(&self, scope: &&mut Vec<Self>, name: &str) -> Box<dyn Object> {
         Object::clone(
             self.0
                 .get(name)
