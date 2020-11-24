@@ -58,8 +58,9 @@ impl Object for Vec<Box<dyn Object>> {
         let mut s = "( ".to_string();
         for el in self.into_iter() {
             s += &el.to_string();
+            s += " ";
         }
-        s
+        s + ")"
     }
 
     fn to_tuple(self: Box<Self>) -> Vec<Box<dyn Object>> {
