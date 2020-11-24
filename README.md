@@ -18,14 +18,15 @@ which generate strctures and enums) haven't been implemented yet.
 
 ### Which featires are working now?
 
-- `$set` operator (with multiple assignment (not not nested))
+- `$set` operator (with multiple assignment)
 - `$puts` operator (also with several arguments)
 - unquoted strings (may contain only ASCII alphanumeric symbols)
+- quoted strings (without escape sequences)
 - string variables (also quoted strings (without any escape characters))
 - calling string variables and strings (any string returns itself)
 - assigning closures to variables and calling them
 - calling raw closures
-
+- creating tuples, assigning and calling (any tuple returns itself) them
 
 [gh-actions]: https://github.com/timcryt/trash/actions?query=workflow%3ARust
 [img_gh-actions]: https://github.com/timcryt/trash/workflows/Rust/badge.svg
