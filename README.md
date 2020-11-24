@@ -12,9 +12,9 @@ $puts "Hello, world!"
 
 ## State
 
-Now, trash interpreter is in alpha-testing version, most of core features (such as `$set` statement, quoted strings 
-parsing and clousre calling) are implemented, but all of standart features (`@if` function, `@while` function, functions,
-which generate strctures and enums) haven't been implemented yet.
+Now, trash interpreter is in alpha-testing version, all for core features and some base type methonds are implemented, 
+but all of standart features (`@if` function, `@while` function, functions, which generate sructures and enums) haven't
+been implemented yet.
 
 ### Which featires are working now?
 
@@ -27,6 +27,8 @@ which generate strctures and enums) haven't been implemented yet.
 - assigning closures to variables and calling them
 - calling raw closures
 - creating tuples, assigning and calling (any tuple returns itself) them
+- `len` `split` `push` and `eq` methods for strings
+- `push` `pop` `is_empty` and `{any number}` methods for tuples
 
 [gh-actions]: https://github.com/timcryt/trash/actions?query=workflow%3ARust
 [img_gh-actions]: https://github.com/timcryt/trash/workflows/Rust/badge.svg
