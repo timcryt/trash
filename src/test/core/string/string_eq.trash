@@ -1,0 +1,10 @@
+$puts [bar eq baz]
+
+$set a "Hello, world!"
+$set b @a
+
+$set (a b r) [$a _eq $b]
+
+$puts $a
+$puts $b
+$puts $r

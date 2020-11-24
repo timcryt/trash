@@ -1,0 +1,5 @@
+$set s "foo bar baz"
+$set (a b c) [$s split]
+$puts $a
+$puts $b
+$puts $c

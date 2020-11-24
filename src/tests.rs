@@ -99,3 +99,23 @@ fn test_nested_assign() {
 fn test_tuple_puts() {
     run_test("core/core/tuple_puts");
 }
+
+#[test]
+fn test_string_len() {
+    run_test("core/string/string_len");
+}
+
+#[test]
+fn test_string_split() {
+    run_test("core/string/string_split");
+}
+
+#[test]
+fn test_string_push() {
+    run_test("core/string/string_push");
+}
+
+#[test]
+fn test_string_eq() {
+    run_test("core/string/string_eq");
+}

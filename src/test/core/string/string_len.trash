@@ -1,0 +1,5 @@
+$puts [foobar len] ["Hello, world!" len]
+
+$set s "foo bar baz"
+$set (s l) [$s _len]
+$puts $s $l
