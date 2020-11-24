@@ -92,3 +92,8 @@ fn test_multiple_assign() {
 fn test_nested_assign() {
     run_test("nested_assign")
 }
+
+#[test]
+fn test_tuple_puts() {
+    run_test("tuple_puts")
+}

@@ -1,0 +1,5 @@
+$set a (foo bar)
+$puts $a
+
+$set a [(hello world)]
+$puts $a
