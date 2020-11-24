@@ -1,0 +1,14 @@
+$set a (1 2 3 4)
+$set a [[[$a push 5] push 6] push 7]
+
+$puts @a
+
+
+$set (a b) [$a pop]
+$set (a c) [$a pop]
+$set (a d) [$a pop]
+
+$set x ($b $c $d)
+
+$puts @x
+$puts [$a push $x]

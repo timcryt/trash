@@ -119,3 +119,18 @@ fn test_string_push() {
 fn test_string_eq() {
     run_test("core/string/string_eq");
 }
+
+#[test]
+fn test_tuple_push_pop() {
+    run_test("core/tuple/push_pop");
+}
+
+#[test]
+fn test_tuple_empty() {
+    run_test("core/tuple/empty");
+}
+
+#[test]
+fn test_tuple_index() {
+    run_test("core/tuple/index");
+}
