@@ -109,7 +109,7 @@ impl<T: Write + Any> Code<T> {
                 )
             }
 
-            Rule::call => {
+            Rule::call | Rule::call_inner => {
                 let (obj, args, x) = self.collect_args(value.into_inner(), vars, scope);
                 vars = x;
                 let var_value;
@@ -183,7 +183,7 @@ impl<T: Write + Any> Code<T> {
     ) -> (Box<dyn Object>, Vars) {
         let mut r: Box<dyn Object> = Box::new("".to_string());
         for pair in pair.into_inner() {
-            if let Rule::call = pair.as_rule() {
+            if let Rule::call | Rule::call_inner = pair.as_rule() {
                 let mut inner = pair.into_inner();
 
                 let first = inner.next().unwrap();

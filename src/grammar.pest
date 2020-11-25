@@ -1,16 +1,18 @@
-tuple = {"(" ~ " "* ~ (constr ~ " "+)* ~ constr* ~ ")"}
-call  = {" "* ~ constr ~ " "* ~ (constr ~ " "+)* ~ constr*}
-call_expr  = _{"[" ~ " "* ~ call ~ " "* ~ "]"}
+tuple = {"(" ~ (" " | "\n")* ~ (constr ~ (" " | "\n")+)* ~ constr? ~ ")"}
+call  = {" "* ~ constr ~ " "* ~ (constr ~ " "+)* ~ constr?}
+call_inner = {(" "| "\n")* ~ constr ~ (" " | "\n")* ~ (constr ~ (" " | "\n")+)* ~ constr?}
+call_expr  = _{"[" ~ (" " | "\n")* ~ call_inner ~ (" " | "\n")* ~ "]"}
 line  = _{" "* ~ call? ~ "\n"}
-clojure_inner = @{(" " | "\n")* ~ (call ~ "\n")* ~ call ~ (" " | "\n")*}
+end_line = _{" "* ~ call?}
+clojure_inner = @{line* ~ end_line?}
 clojure = _{"{" ~ clojure_inner ~ "}"}
 
 literal = _{"\"" ~ literal_inner ~ "\""}
-literal_inner = @{(!"\"" ~ ANY)+}
+literal_inner = @{(!"\"" ~ ANY)*}
 
 string = {('a'..'z' | '0'..'9' | 'A'..'Z' | "_")+}
 ident = @{("$" |"@") ~ string}
 
 constr = _{tuple | string | literal | ident | call_expr | clojure}
 
-code = {SOI ~ line* ~ call? ~ EOI}
+code = {SOI ~ line* ~ end_line? ~ EOI}
