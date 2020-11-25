@@ -1,0 +1,21 @@
+$set a [@int 2]
+$set b [@int 2]
+$set c [@int 3]
+
+$set d [@a add @c]
+$set e [@c sub @d]
+$set f [@a mul @b]
+$set g [@d div @a]
+$set h [@d rem @a]
+
+$puts @a @b @c @d @e @f @g @h
+
+$set inc {[@int $1] add 1}
+
+@while ((0) 0) {[@int $1] lt 10} {
+    $puts @1
+    $set n [@inc $1]
+    ((@n) @n)
+}
+
+$puts [@a eq @b] [@a eq @c] [@a lt @b] [@a lt @c]

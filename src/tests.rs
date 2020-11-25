@@ -29,6 +29,11 @@ fn run_test(test_name: &str) {
                 "while".to_string(),
                 Box::new(crate::stdlib::while_statement::WhileStatement),
             );
+            stdvars[0].add(
+                "int".to_string(),
+                Box::new(crate::stdlib::integers::Int),
+            );
+
 
             &Code::from_string(s, Arc::new(Mutex::new(fo)))
                 .run(Vars::new(), &mut stdvars)
@@ -154,4 +159,9 @@ fn test_if_statement() {
 #[test]
 fn test_while_statement() {
     run_test("stdlib/while_statement");
+}
+
+#[test]
+fn test_integers() {
+    run_test("stdlib/integers")
 }
