@@ -7,10 +7,9 @@ impl Object for String {
         Box::new(std::clone::Clone::clone(self))
     }
 
-    fn call(mut self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
-        if params.contains("1") {
-            let method = params.get(&scope, "1").to_string();
-            match &method[..] {
+    fn call(mut self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
+        match params.get("1") {
+            Some(method) => match &method.to_string()[..] {
                 "len" => Box::new(self.len().to_string()),
 
                 "_len" => {
@@ -19,10 +18,9 @@ impl Object for String {
                 }
 
                 "split" => {
-                    let delimiter = if params.contains("2") {
-                        params.get(&scope, "2").to_string()
-                    } else {
-                        " ".to_string()
+                    let delimiter = match params.get("2") {
+                        Some(del) => del.to_string(),
+                        _ => " ".to_string(),
                     };
 
                     Box::new(
@@ -33,32 +31,28 @@ impl Object for String {
                 }
 
                 "push" => {
-                    let str_to_push = if params.contains("2") {
-                        params.get(&scope, "2").to_string()
-                    } else {
-                        "".to_string()
-                    };
+                    let str_to_push = params
+                        .get("2")
+                        .map(|x| x.to_string())
+                        .unwrap_or_else(|| "".to_string());
                     self.push_str(&str_to_push);
 
                     self
                 }
 
                 "eq" => {
-                    let str_to_compare = if params.contains("2") {
-                        params.get(&scope, "2").to_string()
-                    } else {
-                        panic!("Expected 1 argument, found 0");
-                    };
-
+                    let str_to_compare = params
+                        .get("2")
+                        .map(|x| x.to_string())
+                        .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));
                     Box::new((*self == str_to_compare).to_string())
                 }
 
                 "_eq" => {
-                    let str_to_compare = if params.contains("2") {
-                        params.get(&scope, "2").to_string()
-                    } else {
-                        panic!("Expected 1 argument, found 0");
-                    };
+                    let str_to_compare = params
+                        .get("2")
+                        .map(|x| x.to_string())
+                        .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));
 
                     let r = Box::new((*self == str_to_compare).to_string());
 
@@ -68,9 +62,8 @@ impl Object for String {
                 other => {
                     panic!("Unknown method: {}", other);
                 }
-            }
-        } else {
-            self
+            },
+            _ => self,
         }
     }
 
@@ -92,18 +85,15 @@ impl Object for Vec<Box<dyn Object>> {
         Box::new(cloned)
     }
 
-    fn call(mut self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
-        if params.contains("1") {
-            let method = params.get(&scope, "1").to_string();
-            match &method[..] {
+    fn call(mut self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
+        match params.get("1").map(|x| x.to_string()) {
+            Some(method) => match &method[..] {
                 "push" => {
-                    let val = if params.contains("2") {
-                        params.get(&scope, "2")
-                    } else {
-                        panic!("Expected 1 argument, found 0")
-                    };
+                    let val = params
+                        .get("2")
+                        .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));
                     self.push(val);
-                    self
+                    self as Box<dyn Object>
                 }
 
                 "pop" => {
@@ -132,9 +122,8 @@ impl Object for Vec<Box<dyn Object>> {
                             .as_ref(),
                     )
                 }
-            }
-        } else {
-            self
+            },
+            None => self,
         }
     }
 

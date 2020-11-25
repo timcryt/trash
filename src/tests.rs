@@ -21,8 +21,14 @@ fn run_test(test_name: &str) {
             let fo = File::create(&filename).unwrap();
 
             let mut stdvars = vec![Vars::new()];
-            stdvars[0].add("if".to_string(), Box::new(crate::stdlib::if_statement::IfStatement));
-            stdvars[0].add("while".to_string(), Box::new(crate::stdlib::while_statement::WhileStatement));
+            stdvars[0].add(
+                "if".to_string(),
+                Box::new(crate::stdlib::if_statement::IfStatement),
+            );
+            stdvars[0].add(
+                "while".to_string(),
+                Box::new(crate::stdlib::while_statement::WhileStatement),
+            );
 
             &Code::from_string(s, Arc::new(Mutex::new(fo)))
                 .run(Vars::new(), &mut stdvars)

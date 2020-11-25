@@ -23,39 +23,38 @@ impl Vars {
         Vars(HashMap::new())
     }
 
+    pub fn from_vec(v: Vec<Box<dyn Object>>) -> Self {
+        let mut r = Vars::new();
+        for (arg_name, arg_value) in v
+            .into_iter()
+            .enumerate()
+            .map(|x| ((x.0 + 1).to_string(), x.1))
+        {
+            r.add(arg_name, arg_value);
+        }
+        r
+    }
+
     pub fn add(&mut self, name: String, value: Box<dyn Object>) {
         self.0.insert(name, value);
     }
 
-    pub fn contains(&self, name: &str) -> bool {
-        self.0.contains_key(name)
+    pub fn get(&mut self, name: &str) -> Option<Box<dyn Object>> {
+        self.0.remove(name)
     }
 
-    pub fn get(&mut self, scope: &&mut Vec<Self>, name: &str) -> Box<dyn Object> {
-        self.0.remove(name).unwrap_or_else(|| {
-            for sclvl in scope.iter().rev() {
-                if sclvl.contains(name) {
-                    panic!("Cannot move variable {} from scope", name);
-                }
-            }
-            panic!("No such variable, {}", name);
-        })
-    }
-
-    pub fn get_cloned(&self, scope: &&mut Vec<Self>, name: &str) -> Box<dyn Object> {
-        Object::clone(
-            self.0
-                .get(name)
-                .unwrap_or_else(|| {
-                    for sclvl in scope.iter().rev() {
-                        if let Some(r) = sclvl.0.get(name) {
-                            return r;
-                        }
+    pub fn get_cloned(&self, scope: &&mut Vec<Self>, name: &str) -> Option<Box<dyn Object>> {
+        self.0
+            .get(name)
+            .map(|x| Object::clone(x.as_ref()))
+            .or_else(|| {
+                for sclvl in scope.iter().rev() {
+                    if let Some(r) = sclvl.0.get(name) {
+                        return Some(Object::clone(r.as_ref()));
                     }
-                    panic!("No sush variable, {}", name)
-                })
-                .as_ref(),
-        )
+                }
+                None
+            })
     }
 }
 
@@ -83,7 +82,7 @@ impl<T: Write + Any> Code<T> {
             vars = x.1;
             args.add(arg_name.to_string(), x.0);
         }
-        (args.get(&&mut Vec::new(), "0"), args, vars)
+        (args.get("0").unwrap_or_else(|| unreachable!()), args, vars)
     }
 
     fn get_value(
@@ -101,10 +100,11 @@ impl<T: Write + Any> Code<T> {
                 let obj_name = &value.as_str()[1..];
                 (
                     match &value.as_str()[0..=0] {
-                        "$" => vars.get(&scope, obj_name),
+                        "$" => vars.get(obj_name),
                         "@" => vars.get_cloned(&scope, obj_name),
                         _ => unreachable!(),
-                    },
+                    }
+                    .unwrap_or_else(|| panic!("No such variable, {}", obj_name)),
                     vars,
                 )
             }

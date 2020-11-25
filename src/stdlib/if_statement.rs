@@ -8,36 +8,30 @@ impl Object for IfStatement {
     }
 
     fn call(self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
-        if params.contains("1") {
-            let cond = params.get(&scope, "1");
+        let cond = params
+            .get("1")
+            .unwrap_or_else(|| panic!("Expected condition"));
+        let then_call = params
+            .get("2")
+            .unwrap_or_else(|| panic!("Expected then call"));
+        let _ = params
+            .get("3")
+            .map(|x| match x.to_string().as_str() {
+                "else" => (),
+                other => panic!("Expected else, found {}", other),
+            })
+            .unwrap_or_else(|| panic!("Expected else"));
+        let else_call = params
+            .get("4")
+            .unwrap_or_else(|| panic!("Expected else call"));
 
-            if params.contains("2") {
-                let then_call = params.get(&scope, "2");
-                if params.contains("3") {
-                    if &params.get(&scope, "3").to_string() == "else" {
-                        if params.contains("4") {
-                            let else_call = params.get(&scope, "4");
-                            match cond.call(Vars::new(), scope).to_string().as_str() {
-                                "true" => then_call.call(Vars::new(), scope),
-                                "false" => else_call.call(Vars::new(), scope),
-                                other => panic!("Expected true or false, found {}", other),
-                            } 
-                        } else {
-                            panic!("Expected else call")
-                        }
-                    } else {
-                        panic!("Expected else")
-                    }
-                } else {
-                    panic!("Expected else")
-                }
-            } else {
-                panic!("Expected then call")
-            }
-        } else {
-            panic!("Expected condition")
+        match cond.call(Vars::new(), scope).to_string().as_str() {
+            "true" => then_call,
+            "false" => else_call,
+            other => panic!("Expected true or false, found {}", other),
         }
-    } 
+        .call(Vars::new(), scope)
+    }
 
     fn to_string(self: Box<Self>) -> String {
         "".to_string()

@@ -23,7 +23,14 @@ fn main() {
     f.read_to_string(&mut s).unwrap();
 
     let mut stdvars = vec![Vars::new()];
-    stdvars[0].add("if".to_string(), Box::new(crate::stdlib::if_statement::IfStatement));
+    stdvars[0].add(
+        "if".to_string(),
+        Box::new(crate::stdlib::if_statement::IfStatement),
+    );
+    stdvars[0].add(
+        "while".to_string(),
+        Box::new(crate::stdlib::while_statement::WhileStatement),
+    );
 
     println!(
         "{}",
