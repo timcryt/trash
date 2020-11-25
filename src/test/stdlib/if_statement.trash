@@ -1,0 +1,3 @@
+$set (a b c) (foo bar baz)
+
+$puts [@if {hello eq world} {@a} else {@if {baz eq baz} {@b} else {@c}}]

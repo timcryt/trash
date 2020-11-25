@@ -19,8 +19,12 @@ fn run_test(test_name: &str) {
         let filename = "src/test/".to_string() + test_name + ".out";
         {
             let fo = File::create(&filename).unwrap();
+
+            let mut stdvars = vec![Vars::new()];
+            stdvars[0].add("if".to_string(), Box::new(crate::stdlib::if_statement::IfStatement));
+
             &Code::from_string(s, Arc::new(Mutex::new(fo)))
-                .run(Vars::new(), &mut Vec::new())
+                .run(Vars::new(), &mut stdvars)
                 .to_string()
                 .into_bytes();
         }
@@ -133,4 +137,9 @@ fn test_tuple_empty() {
 #[test]
 fn test_tuple_index() {
     run_test("core/tuple/index");
+}
+
+#[test]
+fn test_if_statement() {
+    run_test("stdlib/if_statement")
 }
