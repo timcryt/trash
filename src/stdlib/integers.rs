@@ -9,10 +9,10 @@ impl Object for Int {
 
     fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
         Box::new(
-            dbg!(params
+            params
                 .get("1")
                 .unwrap_or_else(|| panic!("Expected 1 argument, found 0"))
-                .to_string())
+                .to_string()
                 .parse::<i64>()
                 .unwrap_or_else(|_| panic!("Expected number, found string")),
         )
