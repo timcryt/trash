@@ -2,7 +2,6 @@ use crate::{Code, Vars};
 use std::{
     fs::File,
     io::prelude::*,
-    sync::{Arc, Mutex},
 };
 
 fn run_test(test_name: &str) {
@@ -34,11 +33,14 @@ fn run_test(test_name: &str) {
                 Box::new(crate::stdlib::integers::Int),
             );
 
+            let mut vars = Vars::new();
+            vars.add(
+                "stdout".to_string(),
+                Box::new(crate::stdlib::files::WriteStream::new(fo)),
+            );
 
-            &Code::from_string(s, Arc::new(Mutex::new(fo)))
-                .run(Vars::new(), &mut stdvars)
-                .to_string()
-                .into_bytes();
+            Code::from_string(s)
+                .run(vars, &mut stdvars);
         }
         {
             let mut fi = File::open(&filename).unwrap();

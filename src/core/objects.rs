@@ -1,7 +1,5 @@
 use crate::core::*;
 
-use std::{any::Any, io::prelude::*};
-
 impl Object for String {
     fn clone(&self) -> Box<dyn Object> {
         Box::new(std::clone::Clone::clone(self))
@@ -141,11 +139,10 @@ impl Object for Vec<Box<dyn Object>> {
     }
 }
 
-impl<T: Write + Any> Object for Code<T> {
+impl Object for Code {
     fn clone(&self) -> Box<dyn Object> {
         Box::new(Code(
             std::clone::Clone::clone(&self.0),
-            <Arc<_> as std::clone::Clone>::clone(&self.1),
         ))
     }
 

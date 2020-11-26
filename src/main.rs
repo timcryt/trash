@@ -10,7 +10,6 @@ extern crate pest_derive;
 use std::{
     fs::File,
     io::prelude::*,
-    sync::{Arc, Mutex},
 };
 
 use crate::core::*;
@@ -34,7 +33,7 @@ fn main() {
 
     println!(
         "{}",
-        Code::from_string(s, Arc::new(Mutex::new(std::io::stdout())))
+        Code::from_string(s)
             .run(Vars::new(), &mut stdvars)
             .to_string()
     );

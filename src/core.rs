@@ -1,11 +1,6 @@
 mod objects;
 
-use std::{
-    any::Any,
-    collections::HashMap,
-    io::prelude::*,
-    sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
 
 use pest::Parser;
 
@@ -63,11 +58,11 @@ impl Vars {
 struct TrashParser;
 
 #[derive(Clone)]
-pub struct Code<T: Write + Any>(String, Arc<Mutex<T>>);
+pub struct Code(String);
 
-impl<T: Write + Any> Code<T> {
-    pub fn from_string(s: String, out: Arc<Mutex<T>>) -> Code<T> {
-        Code(s, out)
+impl Code {
+    pub fn from_string(s: String) -> Code {
+        Code(s)
     }
 
     fn collect_args<'a>(
@@ -121,8 +116,7 @@ impl<T: Write + Any> Code<T> {
 
             Rule::clojure_inner => (
                 Box::new(Code::from_string(
-                    value.as_str().to_string(),
-                    self.1.clone(),
+                    value.as_str().to_string()
                 )),
                 vars,
             ),
@@ -199,22 +193,6 @@ impl<T: Write + Any> Code<T> {
                         r = Box::new("".to_string());
                     }
 
-                    "$puts" => {
-                        for val in inner {
-                            let write_value = {
-                                let x = self.get_value(val, vars, scope);
-                                vars = x.1;
-                                x.0
-                            }
-                            .to_string();
-                            write!(self.1.lock().unwrap(), "{} ", write_value)
-                                .unwrap_or_else(|x| panic!("IO error: {}", x));
-                        }
-                        writeln!(self.1.lock().unwrap())
-                            .unwrap_or_else(|x| panic!("IO error! {}", x));
-
-                        r = Box::new("".to_string());
-                    }
                     _ => {
                         let (obj, args, x) =
                             self.collect_args(Some(first).into_iter().chain(inner), vars, scope);
