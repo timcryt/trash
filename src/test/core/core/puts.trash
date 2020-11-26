@@ -1,5 +1,5 @@
 $set a 1
 $set b 2
 
-$puts $a $b
-$puts a b
+$set stdout [$stdout $a $b]
+$set stdout [$stdout a b]

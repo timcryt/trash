@@ -1,8 +1,8 @@
 $set a ( )
-$puts [$a is_empty]
+$set stdout [$stdout [$a is_empty]]
 
 $set b ( 1 2 3 4 5 )
 $set (b f) [$b _is_empty]
 
-$puts $b
-$puts $f
+$set stdout [$stdout $b]
+$set stdout [$stdout $f]

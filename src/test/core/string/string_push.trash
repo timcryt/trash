@@ -1,1 +1,1 @@
-$puts [foo push bar]
+$set stdout [$stdout [foo push bar]]

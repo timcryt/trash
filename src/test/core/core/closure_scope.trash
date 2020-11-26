@@ -1,5 +1,5 @@
 $set a foo
-$set b {$puts @a}
-@b
+$set b {$1 @a}
+$set stdout [@b $stdout]
 $set a bar
-@b
+$set stdout [@b $stdout]

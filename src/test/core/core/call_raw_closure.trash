@@ -1,2 +1,2 @@
-{$puts $1} foo
-{$puts $1} bar
+$set stdout [{$1 $2} $stdout foo]
+{$1 $2} $stdout bar

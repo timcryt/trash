@@ -1,4 +1,4 @@
 $set a hello
 $set b [@a]
-$puts $a
-$puts $b
+$set stdout [$stdout $a]
+$set stdout [$stdout $b]

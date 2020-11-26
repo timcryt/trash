@@ -1,6 +1,6 @@
 $set (a b) ("Hello," ["world!"])
-$puts $a $b
+$set stdout [$stdout $a $b]
 
-$set (a b) ({$puts "foo"} {$puts "bar"})
-$a
-$b
+$set (a b) ({$1 "foo"} {$1 "bar"})
+$set stdout [$a $stdout]
+$set stdout [$b $stdout]

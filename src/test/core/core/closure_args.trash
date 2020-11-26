@@ -1,4 +1,4 @@
-$set print {$puts $1}
+$set print {$1 $2}
 
-[@print foo]
-[@print bar]
+$set stdout [@print $stdout foo]
+$set stdout [@print $stdout bar]

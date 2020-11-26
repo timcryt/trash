@@ -3,7 +3,7 @@ $set not {@if $1 {false} else {true}}
 
 $set x ""
 
-$puts [
+$set stdout [$stdout [
     [
         @while ((@list) $list ()) { @not [$1 is_empty] } {
             $set (list r) [$1 pop] 
@@ -12,4 +12,4 @@ $puts [
         }
     ]
     1
-]
+]]

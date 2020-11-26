@@ -1,12 +1,12 @@
 $set x ""
 
 $set a "Hello, world!"
-$puts $a
+$set stdout [$stdout $a]
 
 $set b ["Hello, world!"]
-$puts $b
+$set stdout [$stdout $b]
 
 $set c {"Hello, world!"}
-$puts [$c]
+$set stdout [$stdout [$c]]
 
-{$puts "Hello, world!"}
+{$1 "Hello, world!"} $stdout

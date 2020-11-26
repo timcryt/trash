@@ -1,5 +1,6 @@
 $set a {
-    $puts foo
-    bar}
-$puts baz
-$puts [$a]
+    $1 foo
+}
+$set stdout [$stdout baz]
+$set stdout [$a $stdout]
+$stdout bar
