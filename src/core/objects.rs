@@ -143,6 +143,7 @@ impl Object for Code {
     fn clone(&self) -> Box<dyn Object> {
         Box::new(Code(
             std::clone::Clone::clone(&self.0),
+            Arc::clone(&self.1),
         ))
     }
 

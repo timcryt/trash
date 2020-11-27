@@ -1,6 +1,9 @@
 mod objects;
 
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{RwLock, Arc}
+};
 
 use pest::Parser;
 
@@ -57,113 +60,196 @@ impl Vars {
 #[grammar = "grammar.pest"]
 struct TrashParser;
 
+enum ObjDef {
+    String(String),
+    Closure(String),
+    ObjMove(String),
+    ObjClone(String),
+    Call(Box<(ObjDef, Vec<ObjDef>)>),
+    Tuple(Vec<ObjDef>),
+}
+
+enum AssignTree {
+    Leaf(String),
+    Node(Vec<AssignTree>),
+}
+
+enum Call {
+    SetOp(AssignTree, ObjDef),
+    CallOp((ObjDef, Vec<ObjDef>)),
+}
+
+struct Parsed(Vec<Call>);
+
+impl Parsed {
+    fn parse(code: &str) -> Parsed {
+        Parsed(TrashParser::parse(Rule::code, code)
+            .unwrap_or_else(|e| panic!("{}", e))
+            .next()
+            .unwrap()
+            .into_inner()
+            .filter_map(|pair| {
+                match pair.as_rule() {
+                    Rule::call => {
+                        let mut call_iter = pair.into_inner();
+                        let first = call_iter.next().unwrap();
+                        if first.as_str() == "$set" {
+                            let names = call_iter.next().unwrap_or_else(|| panic!("Expected variable name"));
+                            let values = call_iter.next().unwrap_or_else(|| panic!("Expected variable value"));
+                            Some(Call::SetOp(Self::parse_set_names(names), Self::parse_obj(values)))
+                        } else {
+                            Some(Call::CallOp(Self::parse_call(first, call_iter)))
+                        }
+                    }
+                    Rule::EOI => None,
+                    other => panic!("{:?}", other),
+                }
+            })
+            .collect()
+        )
+    }
+
+    fn parse_set_names(names: pest::iterators::Pair<Rule>) -> AssignTree {
+        match names.as_rule() {
+            Rule::string => {
+                AssignTree::Leaf(names.as_str().to_string())
+            }
+
+            Rule::tuple => {
+                AssignTree::Node(names.into_inner().map(Self::parse_set_names).collect())
+            }
+
+            other => {
+                panic!("Expected string or tuple, found {:?}", other);
+            }
+        }
+    }
+
+    fn parse_call(obj: pest::iterators::Pair<Rule>, args: pest::iterators::Pairs<Rule>) -> (ObjDef, Vec<ObjDef>) {
+        (Self::parse_obj(obj), args.map(Self::parse_obj).collect())
+    }
+
+    fn parse_obj(obj: pest::iterators::Pair<Rule>) -> ObjDef {
+        match obj.as_rule() {
+            Rule::string | Rule::literal_inner => ObjDef::String(obj.as_str().to_string()),
+            
+            Rule::ident => match &obj.as_str()[0..=0] {
+                "$" => ObjDef::ObjMove(obj.as_str()[1..].to_string()),
+                "@" => ObjDef::ObjClone(obj.as_str()[1..].to_string()),
+                _ => unreachable!(),
+            }
+
+            Rule::call | Rule::call_inner => {
+                let mut call_iter = obj.into_inner();
+                let first = call_iter.next().unwrap();
+                ObjDef::Call(Box::new(Self::parse_call(first, call_iter)))
+            }
+
+            Rule::clojure_inner => ObjDef::Closure(obj.as_str().to_string()),
+
+            Rule::tuple => {
+                ObjDef::Tuple(obj.into_inner().map(Self::parse_obj).collect())
+            }
+
+            _ => unreachable!(),
+        }
+    }
+}
+
+
 #[derive(Clone)]
-pub struct Code(String);
+pub struct Code(String, Arc<RwLock<Option<Parsed>>>);
 
 impl Code {
     pub fn from_string(s: String) -> Code {
-        Code(s)
+        Code(s, Arc::new(RwLock::new(None)))
     }
 
     fn collect_args<'a>(
         &mut self,
-        args_pairs: impl Iterator<Item = pest::iterators::Pair<'a, Rule>>,
+        args_pairs: &Vec<ObjDef>,
         mut vars: Vars,
         scope: &mut Vec<Vars>,
-    ) -> (Box<dyn Object>, Vars, Vars) {
+    ) -> (Vars, Vars) {
         let mut args = Vars::new();
-        for (arg_name, arg_value) in args_pairs.enumerate() {
+        for (arg_name, arg_value) in args_pairs.into_iter().enumerate() {
             let x = self.get_value(arg_value, vars, scope);
             vars = x.1;
-            args.add(arg_name.to_string(), x.0);
+            args.add((arg_name + 1).to_string(), x.0);
         }
-        (args.get("0").unwrap_or_else(|| unreachable!()), args, vars)
+        (args, vars)
     }
 
     fn get_value(
         &mut self,
-        value: pest::iterators::Pair<Rule>,
+        value: &ObjDef,
         mut vars: Vars,
         scope: &mut Vec<Vars>,
     ) -> (Box<dyn Object>, Vars) {
-        match value.as_rule() {
-            Rule::string => (Box::new(value.as_str().to_string()), vars),
-
-            Rule::literal_inner => (Box::new(value.as_str().to_string()), vars),
-
-            Rule::ident => {
-                let obj_name = &value.as_str()[1..];
-                (
-                    match &value.as_str()[0..=0] {
-                        "$" => vars.get(obj_name),
-                        "@" => vars.get_cloned(&scope, obj_name),
-                        _ => unreachable!(),
-                    }
-                    .unwrap_or_else(|| panic!("No such variable, {}", obj_name)),
-                    vars,
-                )
+        match value {
+            ObjDef::String(s) => (Box::new(s.to_string()), vars),
+            
+            ObjDef::Closure(c) => (Box::new(Code::from_string(c.to_string())), vars),
+            
+            ObjDef::ObjMove(name) => {
+                let obj = vars.get(&name).unwrap_or_else(|| panic!("No such variable, {}", name));
+                (obj, vars)
             }
 
-            Rule::call | Rule::call_inner => {
-                let (obj, args, x) = self.collect_args(value.into_inner(), vars, scope);
-                vars = x;
-                let var_value;
+            ObjDef::ObjClone(name) => {
+                let obj = vars.get_cloned(&scope, &name).unwrap_or_else(|| panic!("No such variable, {}", name));
+                (obj, vars)
+            }
+
+            ObjDef::Call(b) => {
+                let (obj, args) = b.as_ref();
+                let x = self.get_value(&obj, vars, scope);
+                vars = x.1;
+                let y = self.collect_args(&args, vars, scope);
+                vars = y.1;
                 scope.push(vars);
-                var_value = obj.call(args, scope);
+                let res = x.0.call(y.0, scope);
                 vars = scope.pop().unwrap();
-                (var_value, vars)
+                (res, vars)
             }
 
-            Rule::clojure_inner => (
-                Box::new(Code::from_string(
-                    value.as_str().to_string()
-                )),
-                vars,
-            ),
-
-            Rule::tuple => {
+            ObjDef::Tuple(objs) => {
                 let mut tup = Vec::new();
-                for el in value.into_inner() {
-                    let x = self.get_value(el, vars, scope);
+                for obj in objs {
+                    let x = self.get_value(obj, vars, scope);
                     vars = x.1;
                     tup.push(x.0);
                 }
                 (Box::new(tup), vars)
             }
-
-            _ => todo!(),
         }
     }
 
     fn exec_set(
         &mut self,
-        mut vars: Vars,
-        names: pest::iterators::Pair<Rule>,
+        names: &AssignTree,
         values: Box<dyn Object>,
+        mut vars: Vars,
+        scope: &mut Vec<Vars>,
     ) -> Vars {
-        match names.as_rule() {
-            Rule::string => {
-                vars.add(names.as_str().to_string(), values);
+        match names {
+            AssignTree::Leaf(name) => {
+                vars.add(name.to_string(), values);
             }
 
-            Rule::tuple => {
-                let names = names.into_inner().collect::<Vec<_>>();
+            AssignTree::Node(names) => {
                 let values = values.to_tuple();
-                if names.len() == values.len() {
-                    for (name, value) in names.into_iter().zip(values.into_iter()) {
-                        vars = self.exec_set(vars, name, value);
-                    }
-                } else {
+                if values.len() != names.len() {
                     panic!(
                         "Error in set operator, expected tuple with length {}, found tuple with length {}",
                         names.len(),
                         values.len()
                     );
+                } else {
+                    for (name, value) in names.into_iter().zip(values.into_iter()) {
+                        vars = self.exec_set(name, value, vars, scope);
+                    }
                 }
-            }
-
-            other => {
-                panic!("Expected string or tuple, found {:?}", other);
             }
         }
         vars
@@ -171,35 +257,28 @@ impl Code {
 
     fn parse_run(
         &mut self,
-        pair: pest::iterators::Pair<Rule>,
         mut vars: Vars,
         scope: &mut Vec<Vars>,
     ) -> (Box<dyn Object>, Vars) {
         let mut r: Box<dyn Object> = Box::new("".to_string());
-        for pair in pair.into_inner() {
-            if let Rule::call | Rule::call_inner = pair.as_rule() {
-                let mut inner = pair.into_inner();
+        let code = Arc::clone(&self.1);
+        for call in &code.read().unwrap().as_ref().unwrap().0 {
+            match call {
+                Call::SetOp(names, values) => {
+                    let x = self.get_value(values, vars, scope);
+                    vars = x.1;
+                    vars = self.exec_set(names, x.0, vars, scope);
+                    r = Box::new("".to_string());
+                }
 
-                let first = inner.next().unwrap();
-                match first.as_str() {
-                    "$set" => {
-                        let names = inner.next().unwrap();
-                        let values = inner.next().unwrap();
-                        let x = self.get_value(values, vars, scope);
-
-                        vars = x.1;
-                        vars = self.exec_set(vars, names, x.0);
-
-                        r = Box::new("".to_string());
-                    }
-
-                    _ => {
-                        let (obj, args, x) =
-                            self.collect_args(Some(first).into_iter().chain(inner), vars, scope);
-                        scope.push(x);
-                        r = obj.call(args, scope);
-                        vars = scope.pop().unwrap();
-                    }
+                Call::CallOp((obj, args)) => {
+                    let x = self.get_value(obj, vars, scope);
+                    vars = x.1;
+                    let y = self.collect_args(args, vars, scope);
+                    vars = y.1;
+                    scope.push(vars);
+                    r = x.0.call(y.0, scope);
+                    vars = scope.pop().unwrap();
                 }
             }
         }
@@ -207,11 +286,9 @@ impl Code {
     }
 
     pub fn run(mut self, vars: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
-        let s = std::clone::Clone::clone(&self.0);
-        let pair = TrashParser::parse(Rule::code, &s)
-            .unwrap_or_else(|e| panic!("{}", e))
-            .next()
-            .unwrap();
-        self.parse_run(pair, vars, scope).0
+        if self.1.read().unwrap().is_none() {
+            *self.1.write().unwrap() = Some(Parsed::parse(&self.0));
+        }
+        self.parse_run(vars, scope).0
     }
 }
