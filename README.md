@@ -13,7 +13,7 @@ $puts "Hello, world!"
 ## State
 
 Now, trash interpreter is in alpha-testing version, all for core features and some base type methonds are implemented, 
-but all of standart features (`@while` function, functions, which generate sructures and enums) haven't
+but most of standart features (functions, which generate sructures and enums) haven't
 been implemented yet.
 
 ### Which featires are working now?
@@ -30,6 +30,7 @@ been implemented yet.
 - `len` `split` `push` and `eq` methods for strings
 - `push` `pop` `is_empty` and `{any number}` methods for tuples
 - `@if` function, which calls condition closure and then call them closure or else closure
+- `@while` function, which calls body closure, while condition closure returns `true`
 
 [gh-actions]: https://github.com/timcryt/trash/actions?query=workflow%3ARust
 [img_gh-actions]: https://github.com/timcryt/trash/workflows/Rust/badge.svg
