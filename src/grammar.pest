@@ -6,6 +6,7 @@ line  = _{" "* ~ call? ~ "\n"}
 end_line = _{" "* ~ call?}
 clojure_inner = @{line* ~ end_line?}
 clojure = _{"{" ~ clojure_inner ~ "}"}
+move_closure = {"<{" ~ clojure_inner ~ "}" ~ (" " | "\n")* ~ (string ~ (" " | "\n")*)+ ~ ">" }
 
 literal = _{"\"" ~ literal_inner ~ "\""}
 literal_inner = @{(!"\"" ~ ANY)*}
@@ -13,6 +14,6 @@ literal_inner = @{(!"\"" ~ ANY)*}
 string = {('a'..'z' | '0'..'9' | 'A'..'Z' | "_")+}
 ident = @{("$" |"@") ~ string}
 
-constr = _{tuple | string | literal | ident | call_expr | clojure}
+constr = _{tuple | string | literal | ident | call_expr | clojure | move_closure}
 
 code = {SOI ~ line* ~ end_line? ~ EOI}

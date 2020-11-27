@@ -159,3 +159,27 @@ impl Object for Code {
         vec![self]
     }
 }
+
+impl Object for MovClos {
+    fn clone(&self) -> Box<dyn Object> {
+        Box::new(std::clone::Clone::clone(self))
+    }
+
+    fn call(self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
+        let mut scope_vars = scope.pop().unwrap_or_else(|| panic!("Can't move scope into closure"));
+        for name in self.1 {
+            let value = scope_vars.get(&name).unwrap_or_else(|| panic!("No such variable {}", name));
+            params.add(name, value);
+        }
+        scope.push(scope_vars);
+        Box::new(self.0).call(params, scope)
+    }
+
+    fn to_string(self: Box<Self>) -> String {
+        Box::new(self.0).to_string()
+    }
+
+    fn to_tuple(self: Box<Self>) -> Vec<Box<dyn Object>> {
+        Box::new(self.0).to_tuple()
+    }
+}

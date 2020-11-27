@@ -63,6 +63,7 @@ struct TrashParser;
 enum ObjDef {
     String(String),
     Closure(String),
+    MoveClosure(String, Vec<String>),
     ObjMove(String),
     ObjClone(String),
     Call(Box<(ObjDef, Vec<ObjDef>)>),
@@ -151,6 +152,13 @@ impl Parsed {
                 ObjDef::Tuple(obj.into_inner().map(Self::parse_obj).collect())
             }
 
+            Rule::move_closure => {
+                let mut clos_iter = obj.into_inner();
+                let clos_str = clos_iter.next().unwrap().as_str().to_string();
+                let clos_vars = clos_iter.map(|x| x.as_str().to_string()).collect();
+                ObjDef::MoveClosure(clos_str, clos_vars)
+            }
+
             _ => unreachable!(),
         }
     }
@@ -159,6 +167,9 @@ impl Parsed {
 
 #[derive(Clone)]
 pub struct Code(String, Arc<RwLock<Option<Parsed>>>);
+
+#[derive(Clone)]
+pub struct MovClos(Code, Vec<String>);
 
 impl Code {
     pub fn from_string(s: String) -> Code {
@@ -222,6 +233,8 @@ impl Code {
                 }
                 (Box::new(tup), vars)
             }
+
+            ObjDef::MoveClosure(clos, args) => (Box::new(MovClos(Code::from_string(clos.to_string()), args.clone())), vars),
         }
     }
 
