@@ -10,6 +10,20 @@ Hello world:
 $puts "Hello, world!"
 ```
 
+99 bottles of beer:
+```trash
+@while (([@int 99]) [@int 99] $stdout) {$1 gt 0} {
+    $set (i stdout) ($1 $2)
+
+    $set stdout [$stdout @i "bottles of beer on the wall,"]
+    $set stdout [$stdout @i "bottles of beer!"]
+    $set stdout [$stdout "Take one down, pass it around,"]
+    $set stdout [$stdout [@i sub 1] "bottles of beer on the wall!"]
+
+    (([@i sub 1]) [@i sub 1] $stdout)
+}
+```
+
 ## State
 
 Now, trash interpreter is in alpha-testing version, all for core features and some base type methonds are implemented, 
@@ -26,6 +40,7 @@ been implemented yet.
 - calling string variables and strings (any string returns itself)
 - assigning closures to variables and calling them
 - calling raw closures
+- closures, which moves variables from scope to themself
 - creating tuples, assigning and calling (any tuple returns itself) them
 - `len` `split` `push` and `eq` methods for strings
 - `push` `pop` `is_empty` and `{any number}` methods for tuples
