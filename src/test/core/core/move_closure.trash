@@ -1,0 +1,2 @@
+$set print <{$stdout $1} stdout>
+$print foobar

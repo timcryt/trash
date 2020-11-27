@@ -154,6 +154,11 @@ fn test_tuple_index() {
 }
 
 #[test]
+fn test_move_clousre() {
+    run_test("core/core/move_closure")
+}
+
+#[test]
 fn test_if_statement() {
     run_test("stdlib/if_statement");
 }
