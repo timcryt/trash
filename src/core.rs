@@ -146,7 +146,7 @@ impl Parsed {
                 ObjDef::Call(Box::new(Self::parse_call(first, call_iter)))
             }
 
-            Rule::clojure_inner => ObjDef::Closure(obj.as_str().to_string()),
+            Rule::closure_inner => ObjDef::Closure(obj.as_str().to_string()),
 
             Rule::tuple => {
                 ObjDef::Tuple(obj.into_inner().map(Self::parse_obj).collect())
