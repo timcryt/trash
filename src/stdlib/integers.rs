@@ -1,5 +1,7 @@
 use crate::core::*;
 
+use std::any::*;
+
 pub struct Int;
 
 impl Object for Int {
@@ -8,14 +10,20 @@ impl Object for Int {
     }
 
     fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
-        Box::new(
-            params
-                .get("1")
-                .unwrap_or_else(|| panic!("Expected 1 argument, found 0"))
-                .to_string()
-                .parse::<i64>()
-                .unwrap_or_else(|_| panic!("Expected number, found string")),
-        )
+        let var = params
+            .get("1")
+            .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));
+        
+        
+        if var.type_id() == 0i64.type_id() {
+           var
+        } else {
+            Box::new(
+                var.to_string()
+                    .parse::<i64>()
+                    .unwrap_or_else(|_| panic!("Expected number, found string"))
+            )
+        }
     }
 
     fn to_string(self: Box<Self>) -> String {
