@@ -2,7 +2,7 @@ mod objects;
 
 use std::{
     collections::HashMap,
-    sync::{RwLock, Arc}
+    sync::Arc,
 };
 
 use pest::Parser;
@@ -60,26 +60,30 @@ impl Vars {
 #[grammar = "grammar.pest"]
 struct TrashParser;
 
+#[derive(Clone)]
 enum ObjDef {
     String(String),
-    Closure(String),
-    MoveClosure(String, Vec<String>),
+    Closure(Arc<Parsed>, String),
+    MoveClosure(Arc<Parsed>, String, Vec<String>),
     ObjMove(String),
     ObjClone(String),
     Call(Box<(ObjDef, Vec<ObjDef>)>),
     Tuple(Vec<ObjDef>),
 }
 
+#[derive(Clone)]
 enum AssignTree {
     Leaf(String),
     Node(Vec<AssignTree>),
 }
 
+#[derive(Clone)]
 enum Call {
     SetOp(AssignTree, ObjDef),
     CallOp((ObjDef, Vec<ObjDef>)),
 }
 
+#[derive(Clone)]
 struct Parsed(Vec<Call>);
 
 impl Parsed {
@@ -146,7 +150,7 @@ impl Parsed {
                 ObjDef::Call(Box::new(Self::parse_call(first, call_iter)))
             }
 
-            Rule::closure_inner => ObjDef::Closure(obj.as_str().to_string()),
+            Rule::closure_inner => ObjDef::Closure(Arc::new(Parsed::parse(obj.as_str())), obj.as_str().to_string()),
 
             Rule::tuple => {
                 ObjDef::Tuple(obj.into_inner().map(Self::parse_obj).collect())
@@ -154,9 +158,9 @@ impl Parsed {
 
             Rule::move_closure => {
                 let mut clos_iter = obj.into_inner();
-                let clos_str = clos_iter.next().unwrap().as_str().to_string();
+                let clos_str = clos_iter.next().unwrap().as_str();
                 let clos_vars = clos_iter.map(|x| x.as_str().to_string()).collect();
-                ObjDef::MoveClosure(clos_str, clos_vars)
+                ObjDef::MoveClosure(Arc::new(Parsed::parse(clos_str)), clos_str.to_string(), clos_vars)
             }
 
             _ => unreachable!(),
@@ -166,14 +170,14 @@ impl Parsed {
 
 
 #[derive(Clone)]
-pub struct Code(String, Arc<RwLock<Option<Parsed>>>);
+pub struct Code(String, Option<Arc<Parsed>>);
 
 #[derive(Clone)]
 pub struct MovClos(Code, Vec<String>);
 
 impl Code {
     pub fn from_string(s: String) -> Code {
-        Code(s, Arc::new(RwLock::new(None)))
+        Code(s, None)
     }
 
     fn collect_args<'a>(
@@ -200,7 +204,10 @@ impl Code {
         match value {
             ObjDef::String(s) => (Box::new(s.to_string()), vars),
             
-            ObjDef::Closure(c) => (Box::new(Code::from_string(c.to_string())), vars),
+            ObjDef::Closure(p, c) => (
+                Box::new(Code(c.to_string(), Some(Arc::clone(p)))), 
+                vars
+            ),
             
             ObjDef::ObjMove(name) => {
                 let obj = vars.get(&name).unwrap_or_else(|| panic!("No such variable, {}", name));
@@ -234,7 +241,10 @@ impl Code {
                 (Box::new(tup), vars)
             }
 
-            ObjDef::MoveClosure(clos, args) => (Box::new(MovClos(Code::from_string(clos.to_string()), args.clone())), vars),
+            ObjDef::MoveClosure(p, c, args) => (
+                Box::new(MovClos(Code(c.to_string(), Some(Arc::clone(p))), args.clone())), 
+                vars
+            ),
         }
     }
 
@@ -274,20 +284,20 @@ impl Code {
         scope: &mut Vec<Vars>,
     ) -> (Box<dyn Object>, Vars) {
         let mut r: Box<dyn Object> = Box::new("".to_string());
-        let code = Arc::clone(&self.1);
-        for call in &code.read().unwrap().as_ref().unwrap().0 {
+        let code = Arc::clone(self.1.as_ref().unwrap());
+        for call in &code.as_ref().0 {
             match call {
                 Call::SetOp(names, values) => {
-                    let x = self.get_value(values, vars, scope);
+                    let x = self.get_value(&values, vars, scope);
                     vars = x.1;
-                    vars = self.exec_set(names, x.0, vars, scope);
+                    vars = self.exec_set(&names, x.0, vars, scope);
                     r = Box::new("".to_string());
                 }
 
                 Call::CallOp((obj, args)) => {
-                    let x = self.get_value(obj, vars, scope);
+                    let x = self.get_value(&obj, vars, scope);
                     vars = x.1;
-                    let y = self.collect_args(args, vars, scope);
+                    let y = self.collect_args(&args, vars, scope);
                     vars = y.1;
                     scope.push(vars);
                     r = x.0.call(y.0, scope);
@@ -299,8 +309,8 @@ impl Code {
     }
 
     pub fn run(mut self, vars: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
-        if self.1.read().unwrap().is_none() {
-            *self.1.write().unwrap() = Some(Parsed::parse(&self.0));
+        if self.1.is_none() {
+            self.1 = Some(Arc::new(Parsed::parse(&self.0)));
         }
         self.parse_run(vars, scope).0
     }
