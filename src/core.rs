@@ -1,13 +1,14 @@
 mod objects;
 
 use std::{
+    any::Any,
     collections::HashMap,
     sync::Arc,
 };
 
 use pest::Parser;
 
-pub trait Object {
+pub trait Object: Any {
     fn clone(&self) -> Box<dyn Object>;
     fn call(self: Box<Self>, params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object>;
     fn to_string(self: Box<Self>) -> String;
