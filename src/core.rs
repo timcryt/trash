@@ -2,9 +2,10 @@ mod objects;
 
 use std::{
     any::Any,
-    collections::HashMap,
     sync::Arc,
 };
+
+use fnv::FnvHashMap;
 
 use pest::Parser;
 
@@ -15,11 +16,11 @@ pub trait Object: Any {
     fn to_tuple(self: Box<Self>) -> Vec<Box<dyn Object>>;
 }
 
-pub struct Vars(HashMap<String, Box<dyn Object>>);
+pub struct Vars(FnvHashMap<String, Box<dyn Object>>);
 
 impl Vars {
     pub fn new() -> Self {
-        Vars(HashMap::new())
+        Vars(FnvHashMap::default())
     }
 
     pub fn from_vec(v: Vec<Box<dyn Object>>) -> Self {
