@@ -21,20 +21,11 @@ fn main() {
     let mut s = String::new();
     f.read_to_string(&mut s).unwrap();
 
-    let mut stdvars = vec![Vars::new()];
-    stdvars[0].add(
-        "if".to_string(),
-        Box::new(crate::stdlib::if_statement::IfStatement),
-    );
-    stdvars[0].add(
-        "while".to_string(),
-        Box::new(crate::stdlib::while_statement::WhileStatement),
-    );
-
+    let (vars, mut scope) = stdlib::stdlib(std::io::stdout());
     println!(
         "{}",
         Code::from_string(s)
-            .run(Vars::new(), &mut stdvars)
+            .run(vars, &mut scope)
             .to_string()
     );
 }

@@ -1,4 +1,4 @@
-use crate::{Code, Vars};
+use crate::Code;
 use std::{
     fs::File,
     io::prelude::*,
@@ -18,29 +18,10 @@ fn run_test(test_name: &str) {
         let filename = "src/test/".to_string() + test_name + ".out";
         {
             let fo = File::create(&filename).unwrap();
-
-            let mut stdvars = vec![Vars::new()];
-            stdvars[0].add(
-                "if".to_string(),
-                Box::new(crate::stdlib::if_statement::IfStatement),
-            );
-            stdvars[0].add(
-                "while".to_string(),
-                Box::new(crate::stdlib::while_statement::WhileStatement),
-            );
-            stdvars[0].add(
-                "int".to_string(),
-                Box::new(crate::stdlib::integers::Int),
-            );
-
-            let mut vars = Vars::new();
-            vars.add(
-                "stdout".to_string(),
-                Box::new(crate::stdlib::files::WriteStream::new(fo)),
-            );
+            let (vars, mut scope) = crate::stdlib::stdlib(fo);
 
             Code::from_string(s)
-                .run(vars, &mut stdvars);
+                .run(vars, &mut scope);
         }
         {
             let mut fi = File::open(&filename).unwrap();
