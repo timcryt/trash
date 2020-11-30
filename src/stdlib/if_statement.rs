@@ -25,12 +25,17 @@ impl Object for IfStatement {
             .get("4")
             .unwrap_or_else(|| panic!("Expected else call"));
 
-        match cond.call(Vars::new(), scope).to_string().as_str() {
+        let (cond_res, cond) = {
+            let mut res = cond.call(Vars::new(), scope).to_tuple();
+            let cond = res.pop().unwrap();
+            (res, cond)
+        };
+        match cond.to_string().as_str() {
             "true" => then_call,
             "false" => else_call,
             other => panic!("Expected true or false, found {}", other),
         }
-        .call(Vars::new(), scope)
+        .call(Vars::from_vec(cond_res), scope)
     }
 
     fn to_string(self: Box<Self>) -> String {
