@@ -13,15 +13,14 @@ impl Object for Int {
         let var = params
             .get("1")
             .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));
-        
-        
+
         if var.type_id() == 0i64.type_id() {
-           var
+            var
         } else {
             Box::new(
                 var.to_string()
                     .parse::<i64>()
-                    .unwrap_or_else(|_| panic!("Expected number, found string"))
+                    .unwrap_or_else(|_| panic!("Expected number, found string")),
             )
         }
     }
@@ -43,7 +42,13 @@ impl Object for i64 {
     fn call(self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
         match params.get("1").map(|x| x.to_string()) {
             Some(method) => match method.as_str() {
-                op if op == "div" || op == "add" || op == "sub" || op == "mul" || op == "div" || op == "rem" => {
+                op if op == "div"
+                    || op == "add"
+                    || op == "sub"
+                    || op == "mul"
+                    || op == "div"
+                    || op == "rem" =>
+                {
                     let n = params
                         .get("2")
                         .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));

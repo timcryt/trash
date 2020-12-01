@@ -1,9 +1,6 @@
 mod objects;
 
-use std::{
-    any::Any,
-    sync::Arc,
-};
+use std::{any::Any, sync::Arc};
 
 use fnv::FnvHashMap;
 
@@ -90,37 +87,41 @@ struct Parsed(Vec<Call>);
 
 impl Parsed {
     fn parse(code: &str) -> Parsed {
-        Parsed(TrashParser::parse(Rule::code, code)
-            .unwrap_or_else(|e| panic!("{}", e))
-            .next()
-            .unwrap()
-            .into_inner()
-            .filter_map(|pair| {
-                match pair.as_rule() {
+        Parsed(
+            TrashParser::parse(Rule::code, code)
+                .unwrap_or_else(|e| panic!("{}", e))
+                .next()
+                .unwrap()
+                .into_inner()
+                .filter_map(|pair| match pair.as_rule() {
                     Rule::call => {
                         let mut call_iter = pair.into_inner();
                         let first = call_iter.next().unwrap();
                         if first.as_str() == "$set" {
-                            let names = call_iter.next().unwrap_or_else(|| panic!("Expected variable name"));
-                            let values = call_iter.next().unwrap_or_else(|| panic!("Expected variable value"));
-                            Some(Call::SetOp(Self::parse_set_names(names), Self::parse_obj(values)))
+                            let names = call_iter
+                                .next()
+                                .unwrap_or_else(|| panic!("Expected variable name"));
+                            let values = call_iter
+                                .next()
+                                .unwrap_or_else(|| panic!("Expected variable value"));
+                            Some(Call::SetOp(
+                                Self::parse_set_names(names),
+                                Self::parse_obj(values),
+                            ))
                         } else {
                             Some(Call::CallOp(Self::parse_call(first, call_iter)))
                         }
                     }
                     Rule::EOI => None,
                     other => panic!("{:?}", other),
-                }
-            })
-            .collect()
+                })
+                .collect(),
         )
     }
 
     fn parse_set_names(names: pest::iterators::Pair<Rule>) -> AssignTree {
         match names.as_rule() {
-            Rule::string => {
-                AssignTree::Leaf(names.as_str().to_string())
-            }
+            Rule::string => AssignTree::Leaf(names.as_str().to_string()),
 
             Rule::tuple => {
                 AssignTree::Node(names.into_inner().map(Self::parse_set_names).collect())
@@ -132,19 +133,22 @@ impl Parsed {
         }
     }
 
-    fn parse_call(obj: pest::iterators::Pair<Rule>, args: pest::iterators::Pairs<Rule>) -> (ObjDef, Vec<ObjDef>) {
+    fn parse_call(
+        obj: pest::iterators::Pair<Rule>,
+        args: pest::iterators::Pairs<Rule>,
+    ) -> (ObjDef, Vec<ObjDef>) {
         (Self::parse_obj(obj), args.map(Self::parse_obj).collect())
     }
 
     fn parse_obj(obj: pest::iterators::Pair<Rule>) -> ObjDef {
         match obj.as_rule() {
             Rule::string | Rule::literal_inner => ObjDef::String(obj.as_str().to_string()),
-            
+
             Rule::ident => match &obj.as_str()[0..=0] {
                 "$" => ObjDef::ObjMove(obj.as_str()[1..].to_string()),
                 "@" => ObjDef::ObjClone(obj.as_str()[1..].to_string()),
                 _ => unreachable!(),
-            }
+            },
 
             Rule::call | Rule::call_inner => {
                 let mut call_iter = obj.into_inner();
@@ -152,24 +156,28 @@ impl Parsed {
                 ObjDef::Call(Box::new(Self::parse_call(first, call_iter)))
             }
 
-            Rule::closure_inner => ObjDef::Closure(Arc::new(Parsed::parse(obj.as_str())), obj.as_str().to_string()),
+            Rule::closure_inner => ObjDef::Closure(
+                Arc::new(Parsed::parse(obj.as_str())),
+                obj.as_str().to_string(),
+            ),
 
-            Rule::tuple => {
-                ObjDef::Tuple(obj.into_inner().map(Self::parse_obj).collect())
-            }
+            Rule::tuple => ObjDef::Tuple(obj.into_inner().map(Self::parse_obj).collect()),
 
             Rule::move_closure => {
                 let mut clos_iter = obj.into_inner();
                 let clos_str = clos_iter.next().unwrap().as_str();
                 let clos_vars = clos_iter.map(|x| x.as_str().to_string()).collect();
-                ObjDef::MoveClosure(Arc::new(Parsed::parse(clos_str)), clos_str.to_string(), clos_vars)
+                ObjDef::MoveClosure(
+                    Arc::new(Parsed::parse(clos_str)),
+                    clos_str.to_string(),
+                    clos_vars,
+                )
             }
 
             _ => unreachable!(),
         }
     }
 }
-
 
 #[derive(Clone)]
 pub struct Code(String, Option<Arc<Parsed>>);
@@ -205,19 +213,20 @@ impl Code {
     ) -> (Box<dyn Object>, Vars) {
         match value {
             ObjDef::String(s) => (Box::new(s.to_string()), vars),
-            
-            ObjDef::Closure(p, c) => (
-                Box::new(Code(c.to_string(), Some(Arc::clone(p)))), 
-                vars
-            ),
-            
+
+            ObjDef::Closure(p, c) => (Box::new(Code(c.to_string(), Some(Arc::clone(p)))), vars),
+
             ObjDef::ObjMove(name) => {
-                let obj = vars.get(&name).unwrap_or_else(|| panic!("No such variable, {}", name));
+                let obj = vars
+                    .get(&name)
+                    .unwrap_or_else(|| panic!("No such variable, {}", name));
                 (obj, vars)
             }
 
             ObjDef::ObjClone(name) => {
-                let obj = vars.get_cloned(&scope, &name).unwrap_or_else(|| panic!("No such variable, {}", name));
+                let obj = vars
+                    .get_cloned(&scope, &name)
+                    .unwrap_or_else(|| panic!("No such variable, {}", name));
                 (obj, vars)
             }
 
@@ -244,8 +253,11 @@ impl Code {
             }
 
             ObjDef::MoveClosure(p, c, args) => (
-                Box::new(MovClos(Code(c.to_string(), Some(Arc::clone(p))), args.clone())), 
-                vars
+                Box::new(MovClos(
+                    Code(c.to_string(), Some(Arc::clone(p))),
+                    args.clone(),
+                )),
+                vars,
             ),
         }
     }
@@ -280,11 +292,7 @@ impl Code {
         vars
     }
 
-    fn parse_run(
-        &mut self,
-        mut vars: Vars,
-        scope: &mut Vec<Vars>,
-    ) -> (Box<dyn Object>, Vars) {
+    fn parse_run(&mut self, mut vars: Vars, scope: &mut Vec<Vars>) -> (Box<dyn Object>, Vars) {
         let mut r: Box<dyn Object> = Box::new("".to_string());
         let code = Arc::clone(self.1.as_ref().unwrap());
         for call in &code.as_ref().0 {

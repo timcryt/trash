@@ -1,8 +1,5 @@
 use crate::Code;
-use std::{
-    fs::File,
-    io::prelude::*,
-};
+use std::{fs::File, io::prelude::*};
 
 fn run_test(test_name: &str) {
     let mut s = String::new();
@@ -20,8 +17,7 @@ fn run_test(test_name: &str) {
             let fo = File::create(&filename).unwrap();
             let (vars, mut scope) = crate::stdlib::stdlib(fo);
 
-            Code::from_string(s)
-                .run(vars, &mut scope);
+            Code::from_string(s).run(vars, &mut scope);
         }
         {
             let mut fi = File::open(&filename).unwrap();

@@ -141,10 +141,7 @@ impl Object for Vec<Box<dyn Object>> {
 
 impl Object for Code {
     fn clone(&self) -> Box<dyn Object> {
-        Box::new(Code(
-            std::clone::Clone::clone(&self.0),
-            self.1.clone()
-        ))
+        Box::new(Code(std::clone::Clone::clone(&self.0), self.1.clone()))
     }
 
     fn call(self: Box<Self>, params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
@@ -166,9 +163,13 @@ impl Object for MovClos {
     }
 
     fn call(self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
-        let mut scope_vars = scope.pop().unwrap_or_else(|| panic!("Can't move scope into closure"));
+        let mut scope_vars = scope
+            .pop()
+            .unwrap_or_else(|| panic!("Can't move scope into closure"));
         for name in self.1 {
-            let value = scope_vars.get(&name).unwrap_or_else(|| panic!("No such variable {}", name));
+            let value = scope_vars
+                .get(&name)
+                .unwrap_or_else(|| panic!("No such variable {}", name));
             params.add(name, value);
         }
         scope.push(scope_vars);

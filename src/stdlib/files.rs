@@ -1,9 +1,6 @@
 use crate::core::*;
 
-use std::{
-    any::Any,
-    io::prelude::*,
-};
+use std::{any::Any, io::prelude::*};
 
 pub struct WriteStream<T: Write + Any>(T);
 
@@ -16,13 +13,13 @@ impl<T: Write + Any> WriteStream<T> {
 impl<T: Write + Any> Object for WriteStream<T> {
     fn clone(&self) -> Box<dyn Object> {
         panic!("Cannot clone linear type")
-    } 
+    }
 
     fn call(mut self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
         let mut i = 1;
         let mut f = false;
         while let Some(x) = params.get(&i.to_string()) {
-            write!(self.0 ,"{} ", x.to_string()).unwrap_or_else(|x| panic!("IO error {}", x));
+            write!(self.0, "{} ", x.to_string()).unwrap_or_else(|x| panic!("IO error {}", x));
             i += 1;
             f = true;
         }
