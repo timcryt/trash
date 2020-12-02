@@ -190,14 +190,14 @@ impl Code {
         Code(s, None)
     }
 
-    fn collect_args<'a>(
+    fn collect_args(
         &mut self,
-        args_pairs: &Vec<ObjDef>,
+        args_pairs: &[ObjDef],
         mut vars: Vars,
         scope: &mut Vec<Vars>,
     ) -> (Vars, Vars) {
         let mut args = Vars::new();
-        for (arg_name, arg_value) in args_pairs.into_iter().enumerate() {
+        for (arg_name, arg_value) in args_pairs.iter().enumerate() {
             let x = self.get_value(arg_value, vars, scope);
             vars = x.1;
             args.add((arg_name + 1).to_string(), x.0);
@@ -283,7 +283,7 @@ impl Code {
                         values.len()
                     );
                 } else {
-                    for (name, value) in names.into_iter().zip(values.into_iter()) {
+                    for (name, value) in names.iter().zip(values.into_iter()) {
                         vars = self.exec_set(name, value, vars, scope);
                     }
                 }
