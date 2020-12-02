@@ -112,13 +112,13 @@ impl Object for Vec<Box<dyn Object>> {
                     let i = other
                         .parse::<usize>()
                         .unwrap_or_else(|_| panic!("Unknown method: {}", other));
-                    Object::clone(
-                        self.get(i)
-                            .unwrap_or_else(|| {
-                                panic!("Index out of bounds: index is {}, len is {}", i, self.len())
-                            })
-                            .as_ref(),
-                    )
+                    let mut t = Box::new("".to_string()) as Box<dyn Object>;
+                    std::mem::swap(
+                        self.get_mut(i)
+                            .unwrap_or_else(|| panic!("Index out of bounds")),
+                        &mut t,
+                    );
+                    t
                 }
             },
             None => self,
