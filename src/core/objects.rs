@@ -83,7 +83,7 @@ impl Object for Vec<Box<dyn Object>> {
         Box::new(cloned)
     }
 
-    fn call(mut self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
+    fn call(mut self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
         match params.get("1").map(|x| x.to_string()) {
             Some(method) => match &method[..] {
                 "push" => {
@@ -106,6 +106,26 @@ impl Object for Vec<Box<dyn Object>> {
                 "_is_empty" => {
                     let r = Box::new(self.is_empty().to_string());
                     Box::new(vec![self as Box<dyn Object>, r])
+                }
+
+                "with" => {
+                    let ind = params
+                        .get("2")
+                        .unwrap_or_else(|| panic!("Expected 2 arguments, found 0"))
+                        .to_string()
+                        .parse::<usize>()
+                        .unwrap_or_else(|_| panic!("Expected number, found string"));
+                    let clos = params
+                        .get("3")
+                        .unwrap_or_else(|| panic!("Expected 2 arguments, found 1"));
+                    let mut t = Box::new("".to_string()) as Box<dyn Object>;
+                    std::mem::swap(
+                        self.get_mut(ind)
+                            .unwrap_or_else(|| panic!("Index out of bounds")),
+                        &mut t,
+                    );
+                    self[ind] = clos.call(Vars::from_vec(vec![t]), scope);
+                    self
                 }
 
                 other => {
