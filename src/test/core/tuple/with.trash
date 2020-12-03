@@ -1,0 +1,12 @@
+$set tup (1 2 3 4 5)
+$set (i n) ([@int 0] [@int 5])
+$set tup [[
+    @while (@i $tup @i) {$1 lt @n} {
+        $set (tup i) ($1 $2)
+        $set tup [$tup with @i {[@int $1] mul 2}]
+        $set i [$i add 1]
+        (@i $tup $i)
+    }
+] 0]
+
+$stdout $tup

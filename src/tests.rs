@@ -131,6 +131,11 @@ fn test_tuple_index() {
 }
 
 #[test]
+fn test_tuple_with() {
+    run_test("core/tuple/with");
+}
+
+#[test]
 fn test_move_clousre() {
     run_test("core/core/move_closure")
 }
