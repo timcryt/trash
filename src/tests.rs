@@ -136,6 +136,11 @@ fn test_tuple_with() {
 }
 
 #[test]
+fn test_tuple_without() {
+    run_test("core/tuple/without");
+}
+
+#[test]
 fn test_move_clousre() {
     run_test("core/core/move_closure")
 }
