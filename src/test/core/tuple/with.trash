@@ -1,5 +1,5 @@
 $set tup (1 2 3 4 5)
-$set (i n) ([@int 0] [$tup len])
+$set (i n) ([@int 0] [@tup len])
 $set tup [[
     @while (@i $tup @i) {$1 lt @n} {
         $set (tup i) ($1 $2)
