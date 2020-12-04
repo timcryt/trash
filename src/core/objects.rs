@@ -15,6 +15,12 @@ impl Object for String {
                     Box::new(vec![self as Box<dyn Object>, len])
                 }
 
+                "chars" => Box::new(
+                    self.chars()
+                        .map(|x| Box::new(x.to_string()) as Box<dyn Object>)
+                        .collect::<Vec<_>>(),
+                ),
+
                 "split" => {
                     let delimiter = match params.get("2") {
                         Some(del) => del.to_string(),
@@ -86,6 +92,15 @@ impl Object for Vec<Box<dyn Object>> {
     fn call(mut self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
         match params.get("1").map(|x| x.to_string()) {
             Some(method) => match &method[..] {
+                "len" => {
+                    Box::new(self.len() as i64)
+                }
+
+                "_len" => {
+                    let len = Box::new(self.len() as i64);
+                    Box::new(vec![self as Box<dyn Object>, len])
+                }
+
                 "push" => {
                     let val = params
                         .get("2")
