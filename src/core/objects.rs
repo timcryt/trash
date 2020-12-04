@@ -128,6 +128,22 @@ impl Object for Vec<Box<dyn Object>> {
                     self
                 }
 
+                "without" => {
+                    let ind = params
+                        .get("2")
+                        .unwrap_or_else(|| panic!("Expected 2 argumets, found 0"))
+                        .to_string()
+                        .parse::<usize>()
+                        .unwrap_or_else(|_| panic!("Expected number, found 1"));
+                    let mut t = Box::new("".to_string()) as Box<dyn Object>;
+                    std::mem::swap(
+                        self.get_mut(ind)
+                            .unwrap_or_else(|| panic!("Index out of bounds")),
+                        &mut t,
+                    );
+                    Box::new(vec![self as Box<dyn Object>, t])
+                }
+
                 other => {
                     let i = other
                         .parse::<usize>()
