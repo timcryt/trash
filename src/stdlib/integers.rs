@@ -87,6 +87,11 @@ impl Object for i64 {
                     )
                 }
 
+                "chr" => {
+                    let chr = std::char::from_u32(*self as u32).unwrap_or_else(|| panic!("Invalid UTF-8 char"));
+                    Box::new(chr.to_string())
+                }
+
                 other => panic!("Unknown method {}", other),
             },
 
