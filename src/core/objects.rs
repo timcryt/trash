@@ -150,13 +150,18 @@ impl Object for Vec<Box<dyn Object>> {
                         .to_string()
                         .parse::<usize>()
                         .unwrap_or_else(|_| panic!("Expected number, found 1"));
+                    let clos = params
+                        .get("3")
+                        .unwrap_or_else(|| panic!("Expected 2 arguments, found 1"));
                     let mut t = Box::new("".to_string()) as Box<dyn Object>;
                     std::mem::swap(
                         self.get_mut(ind)
                             .unwrap_or_else(|| panic!("Index out of bounds")),
                         &mut t,
                     );
-                    Box::new(vec![self as Box<dyn Object>, t])
+                    let mut res = clos.call(Vars::from_vec(vec![t]), scope).to_tuple();
+                    self[ind] = res.pop().unwrap();
+                    Box::new(vec![self as Box<dyn Object>, res.pop().unwrap()])
                 }
 
                 other => {
