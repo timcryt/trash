@@ -7,7 +7,7 @@ Trash is simple and extensible programming language. It is something between Has
 
 Hello world:
 ```trash
-$puts "Hello, world!"
+$stdout "Hello, world!"
 ```
 
 99 bottles of beer:
@@ -24,16 +24,17 @@ $puts "Hello, world!"
 }
 ```
 
+You can find more examples in `examples` folder.
+
 ## State
 
 Now, trash interpreter is in alpha-testing version, all for core features and some base type methonds are implemented, 
-but most of standart features (functions, which generate sructures and enums) haven't
+but most of standart features (floating-point numbers, collections, functions, which generate sructures and enums, etc.) haven't
 been implemented yet.
 
 ### Which featires are working now?
 
 - `$set` operator (with multiple assignment)
-- `$puts` operator (also with several arguments)
 - unquoted strings (may contain only ASCII alphanumeric symbols)
 - quoted strings (without escape sequences)
 - string variables (also quoted strings (without any escape characters))
@@ -42,10 +43,12 @@ been implemented yet.
 - calling raw closures
 - closures, which moves variables from scope to themself
 - creating tuples, assigning and calling (any tuple returns itself) them
-- `len` `split` `push` and `eq` methods for strings
-- `push` `pop` `is_empty` and `{any number}` methods for tuples
+- `len` `chars` `split` `push` and `eq` methods for strings
+- `push` `pop` `len` `is_empty` `with` `without` and `{any number}` methods for tuples
+- integers, arithmetic operations with integers, `chr` method, `@int` cast function
 - `@if` function, which calls condition closure and then call them closure or else closure
 - `@while` function, which calls body closure, while condition closure returns `true`
+- `$stdout` linear function, which prints its arguments to standart output
 
 [gh-actions]: https://github.com/timcryt/trash/actions?query=workflow%3ARust
 [img_gh-actions]: https://github.com/timcryt/trash/workflows/Rust/badge.svg
