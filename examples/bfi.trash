@@ -14,9 +14,7 @@ $set (i j (code l)) ([@int 0] [@int 0] [$code _len])
 @while (@i @i @j $code $mem $stdout) {$1 lt @l} {
     $set (i j code mem stdout) ($1 $2 $3 $4 $5)
     
-    $set (code inst) [$code without @i]
-    $set code [$code with @i {@inst}]
-
+    $set (code inst) [$code without @i {(@1 $1)}]
 
     $set j [@if {@inst eq ">"} {@j add 1} else {@j}]
     $set j [@if {@inst eq "<"} {@j sub 1} else {@j}]
@@ -35,10 +33,7 @@ $set (i j (code l)) ([@int 0] [@int 0] [$code _len])
         } mem> else <{$mem} mem>
     ]
 
-    $set (f mem) [<{
-        $set (mem f) [$mem without @j]
-        (@f [$mem with @j {@f}])
-    } mem>]
+    $set (mem f) [$mem without @j {(@1 $1)}] 
 
     $set stdout [@if {@inst eq "."} <{
             $stdout [@f chr]
@@ -51,8 +46,7 @@ $set (i j (code l)) ([@int 0] [@int 0] [$code _len])
                     $set (d i code) ($1 $2 $3)  
                     $set i [$i add 1]
                     
-                    $set (code inst) [$code without @i]
-                    $set code [$code with @i {@inst}]
+                    $set (code inst) [$code without @i {(@1 $1)}]
 
                     $set d [
                         @if {@inst eq "["} {
@@ -79,8 +73,7 @@ $set (i j (code l)) ([@int 0] [@int 0] [$code _len])
                     $set (d i code) ($1 $2 $3)
                     $set i [$i sub 1]
 
-                    $set (code inst) [$code without @i]
-                    $set code [$code with @i {@inst}]
+                    $set (code inst) [$code without @i {(@1 $1)}]
 
                     $set d [
                         @if {@inst eq "["} {
@@ -101,3 +94,5 @@ $set (i j (code l)) ([@int 0] [@int 0] [$code _len])
     ]
     ([@i add 1] [@i add 1] $j $code $mem $stdout)
 }
+
+""

@@ -2,7 +2,7 @@ $set tup (several long strings which you are dont want to copy)
 $set (tup n) [$tup _len]
 @while ([@int 0] [@int 0] $tup $stdout) {$1 lt @n} {
     $set (i tup stdout) ($1 $2 $3)
-    $set (tup el) [$tup without @i]
+    $set (tup el) [$tup without @i {($1 "")}]
     $set stdout [$stdout $el]
     $set i [$i add 1]
     (@i @i $tup $stdout)
