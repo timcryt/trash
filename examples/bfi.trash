@@ -1,0 +1,103 @@
+"Simple unoptimized brainfuck interpreter"
+
+$set and {@if $1 [@if $2 true else false] else false}
+
+"Brainfuck code"
+$set code [[["++++[>++++<-]>[<++++>-]+<+[>[>+>+<<-]++>>[<<+>>-]>>>[-]++>[-]+>>>+[[-]++++++>>>]<<<[[<++++++++<++>>-]+<.<[>----<-]<]<<[>>>>>[>>>[-]+++++++++<[>-<-]+++++++++>[-[<->-]+[<<<]]<[>+<-]>]<<-]<<-]"] chars] push 1]
+
+"Memroy size"
+$set n [@int 30000]
+$set mem [[@while ([@int 0] [@int 0] ()) {$1 lt @n} {
+    ([@1 add 1] [@1 add 1] [$2 push [@int 0]])
+}] 1]
+$set (i j (code l)) ([@int 0] [@int 0] [$code _len])
+@while (@i @i @j $code $mem $stdout) {$1 lt @l} {
+    $set (i j code mem stdout) ($1 $2 $3 $4 $5)
+    
+    $set (code inst) [$code without @i]
+    $set code [$code with @i {@inst}]
+
+
+    $set j [@if {@inst eq ">"} {@j add 1} else {@j}]
+    $set j [@if {@inst eq "<"} {@j sub 1} else {@j}]
+
+    $set mem [@if {@inst eq "+"} 
+        <{
+            $mem with @j {[[$1 add 1] rem 256]}
+        } mem> else <{$mem} mem>
+    ]
+    $set mem [@if {@inst eq "-"} 
+        <{
+            $mem with @j {
+                $set r [$1 sub 1]
+                @if {@r lt 0} {[@int 255]} else {@r}
+            }
+        } mem> else <{$mem} mem>
+    ]
+
+    $set (f mem) [<{
+        $set (mem f) [$mem without @j]
+        (@f [$mem with @j {@f}])
+    } mem>]
+
+    $set stdout [@if {@inst eq "."} <{
+            $stdout [@f chr]
+        } stdout> else <{$stdout} stdout>
+    ]
+    $set (code i) [@if {@and [@inst eq "["] [@f eq 0]} <{
+            $set d [@int 1]
+            $set (d i code) [
+                @while (@d @d @i $code) {$1 gt 0} {
+                    $set (d i code) ($1 $2 $3)  
+                    $set i [$i add 1]
+                    
+                    $set (code inst) [$code without @i]
+                    $set code [$code with @i {@inst}]
+
+                    $set d [
+                        @if {@inst eq "["} {
+                            @d add 1
+                        } else {
+                            @if {@inst eq "]"} {
+                                @d sub 1
+                            } else {
+                                @d
+                            }
+                        }
+                    ]
+                    (@d @d @i @code)
+                }
+            ]
+            ($code [$i sub 1])
+        } code> else <{($code @i)} code>
+    ]
+
+    $set (code i) [@if {@and [@inst eq "]"] [@f gt 0]} <{
+            $set d [@int 1]
+            $set (d i code) [
+                @while (@d @d @i $code) {$1 gt 0} {
+                    $set (d i code) ($1 $2 $3)
+                    $set i [$i sub 1]
+
+                    $set (code inst) [$code without @i]
+                    $set code [$code with @i {@inst}]
+
+                    $set d [
+                        @if {@inst eq "["} {
+                            @d sub 1
+                        } else {
+                            @if {@inst eq "]"} {
+                                @d add 1
+                            } else {
+                                @d
+                            }
+                        }
+                    ]
+                    (@d @d @i @code)
+                }
+            ]
+            ($code $i)
+        } code> else <{($code @i)} code>
+    ]
+    ([@i add 1] [@i add 1] $j $code $mem $stdout)
+}
