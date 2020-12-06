@@ -116,6 +116,11 @@ fn test_string_eq() {
 }
 
 #[test]
+fn test_string_chars() {
+    run_test("core/string/string_chars");
+}
+
+#[test]
 fn test_tuple_push_pop() {
     run_test("core/tuple/push_pop");
 }
