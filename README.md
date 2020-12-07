@@ -50,5 +50,9 @@ been implemented yet.
 - `@while` function, which calls body closure, while condition closure returns `true`
 - `$stdout` linear function, which prints its arguments to standart output
 
+## Documentation
+
+You can find documentation to languange and library features into `doc` folder in this repository.
+
 [gh-actions]: https://github.com/timcryt/trash/actions?query=workflow%3ARust
 [img_gh-actions]: https://github.com/timcryt/trash/workflows/Rust/badge.svg
