@@ -114,7 +114,11 @@ impl Parsed {
                                 obj,
                             ))
                         } else {
-                            Some(Call::CallOp(Self::parse_call(first, call_iter, &mut moved_vars)))
+                            Some(Call::CallOp(Self::parse_call(
+                                first,
+                                call_iter,
+                                &mut moved_vars,
+                            )))
                         }
                     }
                     Rule::EOI => None,
@@ -124,16 +128,22 @@ impl Parsed {
         )
     }
 
-    fn parse_set_names(names: pest::iterators::Pair<Rule>, moved_vars: &mut Set<String>) -> AssignTree {
+    fn parse_set_names(
+        names: pest::iterators::Pair<Rule>,
+        moved_vars: &mut Set<String>,
+    ) -> AssignTree {
         match names.as_rule() {
             Rule::string => {
                 moved_vars.remove(&names.as_str().to_string());
                 AssignTree::Leaf(names.as_str().to_string())
-            } 
-
-            Rule::tuple => {
-                AssignTree::Node(names.into_inner().map(|x|Self::parse_set_names(x, moved_vars)).collect())
             }
+
+            Rule::tuple => AssignTree::Node(
+                names
+                    .into_inner()
+                    .map(|x| Self::parse_set_names(x, moved_vars))
+                    .collect(),
+            ),
 
             other => {
                 panic!("Expected string or tuple, found {:?}", other);
@@ -144,9 +154,12 @@ impl Parsed {
     fn parse_call(
         obj: pest::iterators::Pair<Rule>,
         args: pest::iterators::Pairs<Rule>,
-        moved_vars: &mut Set<String>
+        moved_vars: &mut Set<String>,
     ) -> (ObjDef, Vec<ObjDef>) {
-        (Self::parse_obj(obj, moved_vars), args.map(|x| Self::parse_obj(x, moved_vars)).collect())
+        (
+            Self::parse_obj(obj, moved_vars),
+            args.map(|x| Self::parse_obj(x, moved_vars)).collect(),
+        )
     }
 
     fn parse_obj(obj: pest::iterators::Pair<Rule>, moved_vars: &mut Set<String>) -> ObjDef {
@@ -178,7 +191,11 @@ impl Parsed {
                 obj.as_str().to_string(),
             ),
 
-            Rule::tuple => ObjDef::Tuple(obj.into_inner().map(|x| Self::parse_obj(x, moved_vars)).collect()),
+            Rule::tuple => ObjDef::Tuple(
+                obj.into_inner()
+                    .map(|x| Self::parse_obj(x, moved_vars))
+                    .collect(),
+            ),
 
             Rule::move_closure => {
                 let mut clos_iter = obj.into_inner();
