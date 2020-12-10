@@ -1,6 +1,6 @@
 mod objects;
 
-use std::{any::Any, sync::Arc};
+use std::{any::*, sync::Arc};
 
 use fnv::{FnvHashMap, FnvHashSet};
 
@@ -11,6 +11,9 @@ pub trait Object: Any {
     fn call(self: Box<Self>, params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object>;
     fn to_string(self: Box<Self>) -> String;
     fn to_tuple(self: Box<Self>) -> Vec<Box<dyn Object>>;
+    fn id(&self) -> TypeId {
+        self.type_id()
+    }
 }
 
 type Map<K, V> = FnvHashMap<K, V>;
