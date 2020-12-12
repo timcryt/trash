@@ -167,7 +167,17 @@ impl Parsed {
 
     fn parse_obj(obj: pest::iterators::Pair<Rule>, moved_vars: &mut Set<String>) -> ObjDef {
         match obj.as_rule() {
-            Rule::string | Rule::literal_inner => ObjDef::String(obj.as_str().to_string()),
+            Rule::string => ObjDef::String(obj.as_str().to_string()),
+
+            Rule::literal_inner => {
+                ObjDef::String(obj.into_inner().map(|chr|
+                    match chr.as_str() {
+                        "\\n" => '\n',
+                        "\\\\" => '\\',
+                        other => other.chars().next().unwrap(),
+                    }
+                ).collect())
+            }
 
             Rule::ident => match &obj.as_str()[0..=0] {
                 "$" => {

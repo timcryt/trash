@@ -9,7 +9,11 @@ closure = _{"{" ~ closure_inner ~ "}"}
 move_closure = {"<{" ~ closure_inner ~ "}" ~ (" " | "\n")* ~ (string ~ (" " | "\n")*)+ ~ ">" }
 
 literal = _{"\"" ~ literal_inner ~ "\""}
-literal_inner = @{(!"\"" ~ ANY)*}
+literal_inner = {char*}
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "n")
+}
 
 string = {('a'..'z' | '0'..'9' | 'A'..'Z' | "_")+}
 ident = @{("$" |"@") ~ string}
