@@ -1,12 +1,12 @@
 $set x ""
 
 $set a "Hello, world!"
-$set stdout [$stdout $a]
+$set stdout [$stdout $a "\n"]
 
 $set b ["Hello, world!"]
-$set stdout [$stdout $b]
+$set stdout [$stdout $b "\n"]
 
 $set c {"Hello, world!"}
-$set stdout [$stdout [$c]]
+$set stdout [$stdout [$c] "\n"]
 
-{$1 "Hello, world!"} $stdout
+{$1 "Hello, world! \n"} $stdout

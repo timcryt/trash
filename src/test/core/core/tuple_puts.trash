@@ -1,5 +1,5 @@
 $set a (foo bar)
-$set stdout [$stdout $a]
+$set stdout [$stdout $a "\n"]
 
 $set a [(hello world)]
-$set stdout [$stdout $a]
+$set stdout [$stdout $a "\n"]

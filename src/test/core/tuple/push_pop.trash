@@ -1,7 +1,7 @@
 $set a (1 2 3 4)
 $set a [[[$a push 5] push 6] push 7]
 
-$set stdout [$stdout @a]
+$set stdout [$stdout @a "\n"]
 
 
 $set (a b) [$a pop]
@@ -10,5 +10,5 @@ $set (a d) [$a pop]
 
 $set x ($b $c $d)
 
-$set stdout [$stdout @x]
-$set stdout [$stdout [$a push $x]]
+$set stdout [$stdout @x "\n"]
+$set stdout [$stdout [$a push $x] "\n"]

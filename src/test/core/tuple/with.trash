@@ -9,4 +9,4 @@ $set tup [[
     }
 ] 0]
 
-$stdout $tup
+$stdout $tup "\n"

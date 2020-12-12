@@ -1,2 +1,2 @@
-$set print <{$stdout $1} stdout>
+$set print <{$stdout $1 "\n"} stdout>
 $print foobar

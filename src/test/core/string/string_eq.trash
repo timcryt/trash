@@ -1,10 +1,10 @@
-$set stdout [$stdout [bar eq baz]]
+$set stdout [$stdout [bar eq baz] "\n"]
 
 $set a "Hello, world!"
 $set b @a
 
 $set (a b r) [$a _eq $b]
 
-$set stdout [$stdout $a]
-$set stdout [$stdout $b]
-$set stdout [$stdout $r]
+$set stdout [$stdout $a "\n"]
+$set stdout [$stdout $b "\n"]
+$set stdout [$stdout $r "\n"]

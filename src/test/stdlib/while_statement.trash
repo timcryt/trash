@@ -12,4 +12,4 @@ $set stdout [$stdout [
         }
     ]
     1
-]]
+] "\n"]

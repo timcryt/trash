@@ -1,2 +1,2 @@
-$set stdout [{$1 $2} $stdout foo]
-{$1 $2} $stdout bar
+$set stdout [{$1 $2 $3} $stdout foo "\n"]
+{$1 $2 $3} $stdout bar "\n"

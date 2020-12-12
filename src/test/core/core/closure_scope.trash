@@ -1,5 +1,5 @@
 $set a foo
-$set b {$1 @a}
+$set b {$1 @a "\n"}
 $set stdout [@b $stdout]
 $set a bar
 $set stdout [@b $stdout]

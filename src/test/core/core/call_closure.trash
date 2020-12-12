@@ -1,6 +1,6 @@
 $set a {
-    $1 foo
+    $1 foo "\n"
 }
-$set stdout [$stdout baz]
+$set stdout [$stdout baz "\n"]
 $set stdout [$a $stdout]
-$stdout bar
+$stdout bar "\n"

@@ -1,1 +1,1 @@
-$set stdout [$stdout [foo push bar]]
+$set stdout [$stdout [foo push bar] "\n"]

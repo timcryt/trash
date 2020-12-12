@@ -1,2 +1,2 @@
 $set a [hello]
-$stdout $a
+$stdout $a "\n"

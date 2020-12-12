@@ -1,15 +1,15 @@
 $set (a b c) (foo bar baz)
 
-$set stdout [$stdout [@if {hello eq world} {@a} else {@if {baz eq baz} {@b} else {@c}}]]
+$set stdout [$stdout [@if {hello eq world} {@a} else {@if {baz eq baz} {@b} else {@c}}] "\n"]
 
 $set vls "Very long string, which will be used after if"
 
 $set (vls stdout) [
     @if <{$vls _eq "Short string"} vls> <{
-        ($1 [$stdout "It's a short string"])
+        ($1 [$stdout "It's a short string" "\n"])
     } stdout> else <{
-        ($1 [$stdout "It's a long string"])
+        ($1 [$stdout "It's a long string" "\n"])
     } stdout>
 ]
 
-$set stdout [$stdout $vls] 
+$set stdout [$stdout $vls "\n"] 

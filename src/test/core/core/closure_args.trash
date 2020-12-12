@@ -1,4 +1,4 @@
-$set print {$1 $2}
+$set print {$1 $2 $3}
 
-$set stdout [@print $stdout foo]
-$set stdout [@print $stdout bar]
+$set stdout [@print $stdout foo "\n"]
+$set stdout [@print $stdout bar "\n"]

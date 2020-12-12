@@ -1,1 +1,1 @@
-$stdout [foobar chars]
+$stdout [foobar chars] "\n"

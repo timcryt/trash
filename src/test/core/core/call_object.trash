@@ -1,4 +1,4 @@
 $set a hello
 $set b [@a]
-$set stdout [$stdout $a]
-$set stdout [$stdout $b]
+$set stdout [$stdout $a "\n"]
+$set stdout [$stdout $b "\n"]

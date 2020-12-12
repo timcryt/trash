@@ -1,13 +1,13 @@
 $set a 1
 $set b @a
-$set stdout [$stdout $a $b]
+$set stdout [$stdout $a $b "\n"]
 
 $set c 1
 $set d @c
 $set d 2
-$set stdout [$stdout $c $d]
+$set stdout [$stdout $c $d "\n"]
 
 $set e 1
 $set f @e
 $set e 2
-$set stdout [$stdout $e $f]
+$set stdout [$stdout $e $f "\n"]

@@ -1,5 +1,5 @@
 $set s "foo bar baz"
 $set (a b c) [$s split]
-$set stdout [$stdout $a]
-$set stdout [$stdout $b]
-$set stdout [$stdout $c]
+$set stdout [$stdout $a "\n"]
+$set stdout [$stdout $b "\n"]
+$set stdout [$stdout $c "\n"]

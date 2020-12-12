@@ -1,5 +1,5 @@
-$set ((a b) (c d) (e f)) ((foo bar) ([foo] [bar]) ({$1 foo} {$1 bar}))
-$set stdout [$stdout $a $b]
-$set stdout [$stdout $c $d]
+$set ((a b) (c d) (e f)) ((foo bar) ([foo] [bar]) ({$1 foo "\n"} {$1 bar "\n"}))
+$set stdout [$stdout $a $b "\n"]
+$set stdout [$stdout $c $d "\n"]
 $set stdout [$e $stdout]
 $set stdout [$f $stdout]

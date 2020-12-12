@@ -1,5 +1,5 @@
-$set stdout [$stdout [foobar len] ["Hello, world!" len]]
+$set stdout [$stdout [foobar len] ["Hello, world!" len] "\n"]
 
 $set s "foo bar baz"
 $set (s l) [$s _len]
-$set stdout [$stdout $s $l]
+$set stdout [$stdout $s $l "\n"]
