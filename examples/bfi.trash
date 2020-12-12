@@ -1,18 +1,28 @@
 "Simple unoptimized brainfuck interpreter"
 
 $set and {@if $1 [@if $2 true else false] else false}
+$set or {@if $1 true else [@if $2 true else false]}
+$set not {@if $1 false else true}
 
-"Brainfuck code"
-$set code [[["++++[>++++<-]>[<++++>-]+<+[>[>+>+<<-]++>>[<<+>>-]>>>[-]++>[-]+>>>+[[-]++++++>>>]<<<[[<++++++++<++>>-]+<.<[>----<-]<]<<[>>>>>[>>>[-]+++++++++<[>-<-]+++++++++>[-[<->-]+[<<<]]<[>+<-]>]<<-]<<-]"] chars] push 1]
+"Brainfuck code inputting"
+$set (stdin code) [@while (true $stdin ()) {$1} {
+    $set (stdin code) ($1 $2)
+    $set (stdin char) [$stdin read]
+    $set f [@or [@char eq "-1"] [@char eq 33]]
+    $set code [@if @f <{$code} code> else <{$code push [@char chr]} code>]
+    ([@not $f] $stdin $code)
+}]
+$set code [$code push " "]
 
-"Memroy size"
+
+"Memory size"
 $set n [@int 30000]
 $set mem [[@while ([@int 0] [@int 0] ()) {$1 lt @n} {
     ([@1 add 1] [@1 add 1] [$2 push [@int 0]])
 }] 1]
 $set (i j (code l)) ([@int 0] [@int 0] [$code _len])
-@while (@i @i @j $code $mem $stdout) {$1 lt @l} {
-    $set (i j code mem stdout) ($1 $2 $3 $4 $5)
+@while (@i @i @j $code $mem $stdin $stdout) {$1 lt @l} {
+    $set (i j code mem stdin stdout) ($1 $2 $3 $4 $5 $6)
     
     $set (code inst) [$code without @i {(@1 $1)}]
 
@@ -39,6 +49,14 @@ $set (i j (code l)) ([@int 0] [@int 0] [$code _len])
             $stdout [@f chr]
         } stdout> else <{$stdout} stdout>
     ]
+
+    $set (stdin mem) [@if {@inst eq ","} <{
+            $set (stdin char) [$stdin read]
+            $set mem [$mem with @j {@char rem 256}]
+            ($stdin $mem)
+        } stdin mem> else <{($stdin $mem)} stdin mem>
+    ]
+
     $set (code i) [@if {@and [@inst eq "["] [@f eq 0]} <{
             $set d [@int 1]
             $set (d i code) [
@@ -92,7 +110,7 @@ $set (i j (code l)) ([@int 0] [@int 0] [$code _len])
             ($code $i)
         } code> else <{($code @i)} code>
     ]
-    ([@i add 1] [@i add 1] $j $code $mem $stdout)
+    ([@i add 1] [@i add 1] $j $code $mem $stdin $stdout)
 }
 
 ""
