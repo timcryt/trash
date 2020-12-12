@@ -18,6 +18,6 @@ fn main() {
     let mut s = String::new();
     f.read_to_string(&mut s).unwrap();
 
-    let (vars, mut scope) = stdlib::stdlib(std::io::stdout());
+    let (vars, mut scope) = stdlib::stdlib(std::io::stdout(), std::io::stdin());
     println!("{}", Code::from_string(s).run(vars, &mut scope).to_string());
 }

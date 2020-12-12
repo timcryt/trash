@@ -5,7 +5,12 @@ pub mod while_statement;
 
 use crate::core::Vars;
 
-pub fn stdlib<T: std::io::Write + std::any::Any>(stdout: T) -> (Vars, Vec<Vars>) {
+use std::{
+    any::Any,
+    io::{Read, Write},
+};
+
+pub fn stdlib<T: Write + Any, U: Read + Any>(stdout: T, stdin: U) -> (Vars, Vec<Vars>) {
     let (mut s, mut v) = (Vars::new(), Vars::new());
     s.add("if".to_string(), Box::new(if_statement::IfStatement));
     s.add(
@@ -16,6 +21,10 @@ pub fn stdlib<T: std::io::Write + std::any::Any>(stdout: T) -> (Vars, Vec<Vars>)
     v.add(
         "stdout".to_string(),
         Box::new(files::WriteStream::new(stdout)),
+    );
+    v.add(
+        "stdin".to_string(),
+        Box::new(files::ReadStream::new(stdin)),
     );
     (v, vec![s])
 }

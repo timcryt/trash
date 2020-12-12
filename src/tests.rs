@@ -15,7 +15,7 @@ fn run_test(test_name: &str) {
         let filename = "src/test/".to_string() + test_name + ".out";
         {
             let fo = File::create(&filename).unwrap();
-            let (vars, mut scope) = crate::stdlib::stdlib(fo);
+            let (vars, mut scope) = crate::stdlib::stdlib(fo, std::io::empty());
 
             Code::from_string(s).run(vars, &mut scope);
         }
