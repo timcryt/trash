@@ -5,11 +5,11 @@ use std::any::*;
 pub struct Float;
 
 impl Float {
-    fn to_float(var: Box<dyn Object>) -> Box<dyn Object> {
+    fn float(var: Box<dyn Object>) -> Box<dyn Object> {
         if var.id() == 0.0f64.type_id() {
             var
-        } else if var.id() == 0f64.type_id() {
-            var.into()
+        } else if var.id() == 0i64.type_id() {
+            Box::new(unsafe {*(var.as_ref() as *const dyn Object as *const i64)} as f64)
         } else {
             Box::new(
                 var.to_string()
@@ -26,7 +26,7 @@ impl Object for Float {
     }
 
     fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
-        Self::to_float(
+        Self::float(
             params
                 .get("1")
                 .unwrap_or_else(|| panic!("Expected 1 argument, found 0")),
@@ -55,7 +55,7 @@ impl Object for f64 {
                         .get("2")
                         .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));
                     let num = unsafe {
-                        *(Float::to_float(n).as_ref() as *const dyn Object as *const f64)
+                        *(Float::float(n).as_ref() as *const dyn Object as *const f64)
                     };
 
                     Box::new(match op {
@@ -72,11 +72,11 @@ impl Object for f64 {
                         .get("2")
                         .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));
                     let num = unsafe {
-                        *(Float::to_float(n).as_ref() as *const dyn Object as *const f64)
+                        *(Float::float(n).as_ref() as *const dyn Object as *const f64)
                     };
                     Box::new(
                         match op {
-                            "eq" => *self == num,
+                            "eq" => (*self - num).abs() / (*self + num) < std::f64::EPSILON,
                             "gt" => *self > num,
                             "lt" => *self < num,
                             _ => unreachable!(),

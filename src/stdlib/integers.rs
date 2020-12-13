@@ -5,9 +5,11 @@ use std::any::*;
 pub struct Int;
 
 impl Int {
-    fn to_int(var: Box<dyn Object>) -> Box<dyn Object> {
+    fn int(var: Box<dyn Object>) -> Box<dyn Object> {
         if var.id() == 0i64.type_id() {
             var
+        } else if var.id() == 0.0f64.type_id() {
+            Box::new(unsafe {*(var.as_ref() as *const dyn Object as *const f64)} as i64)
         } else {
             Box::new(
                 var.to_string()
@@ -24,7 +26,7 @@ impl Object for Int {
     }
 
     fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
-        Self::to_int(
+        Self::int(
             params
                 .get("1")
                 .unwrap_or_else(|| panic!("Expected 1 argument, found 0")),
@@ -48,18 +50,12 @@ impl Object for i64 {
     fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
         match params.get("1").map(|x| x.to_string()) {
             Some(method) => match method.as_str() {
-                op if op == "div"
-                    || op == "add"
-                    || op == "sub"
-                    || op == "mul"
-                    || op == "div"
-                    || op == "rem" =>
-                {
+                op if op == "add" || op == "sub" || op == "mul" || op == "div" || op == "rem" => {
                     let n = params
                         .get("2")
                         .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));
                     let num =
-                        unsafe { *(Int::to_int(n).as_ref() as *const dyn Object as *const i64) };
+                        unsafe { *(Int::int(n).as_ref() as *const dyn Object as *const i64) };
 
                     Box::new(match op {
                         "add" => *self + num,
@@ -76,7 +72,7 @@ impl Object for i64 {
                         .get("2")
                         .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));
                     let num =
-                        unsafe { *(Int::to_int(n).as_ref() as *const dyn Object as *const i64) };
+                        unsafe { *(Int::int(n).as_ref() as *const dyn Object as *const i64) };
                     Box::new(
                         match op {
                             "eq" => *self == num,
