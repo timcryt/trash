@@ -147,7 +147,7 @@ fn test_tuple_without() {
 
 #[test]
 fn test_move_clousre() {
-    run_test("core/core/move_closure")
+    run_test("core/core/move_closure");
 }
 
 #[test]
@@ -162,5 +162,10 @@ fn test_while_statement() {
 
 #[test]
 fn test_integers() {
-    run_test("stdlib/integers")
+    run_test("stdlib/integers");
+}
+
+#[test]
+fn test_floats() {
+    run_test("stdlib/floats");
 }
