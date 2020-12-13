@@ -92,9 +92,7 @@ impl Object for Vec<Box<dyn Object>> {
     fn call(mut self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
         match params.get("1").map(|x| x.to_string()) {
             Some(method) => match &method[..] {
-                "len" => {
-                    Box::new(self.len() as i64)
-                }
+                "len" => Box::new(self.len() as i64),
 
                 "_len" => {
                     let len = Box::new(self.len() as i64);
@@ -124,12 +122,21 @@ impl Object for Vec<Box<dyn Object>> {
                 }
 
                 "with" => {
-                    let ind = params
+                    let ind_str = params
                         .get("2")
-                        .unwrap_or_else(|| panic!("Expected 2 arguments, found 0"))
-                        .to_string()
-                        .parse::<usize>()
-                        .unwrap_or_else(|_| panic!("Expected number, found string"));
+                        .unwrap_or_else(|| panic!("Expected 2 argumets, found 0"))
+                        .to_string();
+
+                    let ind = ind_str
+                        .parse::<isize>()
+                        .unwrap_or_else(|_| panic!("Expected number, found {}", ind_str));
+
+                    let ind = if ind < 0 {
+                        self.len() as isize + ind
+                    } else {
+                        ind
+                    } as usize;
+
                     let clos = params
                         .get("3")
                         .unwrap_or_else(|| panic!("Expected 2 arguments, found 1"));
@@ -144,12 +151,21 @@ impl Object for Vec<Box<dyn Object>> {
                 }
 
                 "without" => {
-                    let ind = params
+                    let ind_str = params
                         .get("2")
                         .unwrap_or_else(|| panic!("Expected 2 argumets, found 0"))
-                        .to_string()
-                        .parse::<usize>()
-                        .unwrap_or_else(|_| panic!("Expected number, found 1"));
+                        .to_string();
+
+                    let ind = ind_str
+                        .parse::<isize>()
+                        .unwrap_or_else(|_| panic!("Expected number, found {}", ind_str));
+
+                    let ind = if ind < 0 {
+                        self.len() as isize + ind
+                    } else {
+                        ind
+                    } as usize;
+
                     let clos = params
                         .get("3")
                         .unwrap_or_else(|| panic!("Expected 2 arguments, found 1"));
