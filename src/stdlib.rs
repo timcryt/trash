@@ -1,4 +1,5 @@
 pub mod files;
+pub mod floats;
 pub mod if_statement;
 pub mod integers;
 pub mod while_statement;
@@ -18,13 +19,11 @@ pub fn stdlib<T: Write + Any, U: Read + Any>(stdout: T, stdin: U) -> (Vars, Vec<
         Box::new(while_statement::WhileStatement),
     );
     s.add("int".to_string(), Box::new(integers::Int));
+    s.add("float".to_string(), Box::new(floats::Float));
     v.add(
         "stdout".to_string(),
         Box::new(files::WriteStream::new(stdout)),
     );
-    v.add(
-        "stdin".to_string(),
-        Box::new(files::ReadStream::new(stdin)),
-    );
+    v.add("stdin".to_string(), Box::new(files::ReadStream::new(stdin)));
     (v, vec![s])
 }
