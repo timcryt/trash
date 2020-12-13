@@ -1,0 +1,14 @@
+$set (a b c d) ([@float 1] [@float 2] [@float "2.5"] [@float "-1.5"])
+
+$set stdout [$stdout [@a add @b] "\n"]
+$set stdout [$stdout [@a sub @c] "\n"]
+$set stdout [$stdout [@a mul @d] "\n"]
+$set stdout [$stdout [@b div @c] "\n"]
+$set stdout [$stdout [@b sqrt] "\n"]
+$set stdout [$stdout [@a sin] "\n"]
+$set stdout [$stdout [@a cos] "\n"]
+$set stdout [$stdout [@a tan] "\n"]
+$set stdout [$stdout [[@a tan] eq [@a tg]] "\n"]
+$set stdout [$stdout [@b log] "\n"]
+$set stdout [$stdout [[@b log] eq [@b ln]] "\n"]
+$set stdout [$stdout [@a eq @b] [@a gt @b] [@a lt @b] [@b gt @a] [@b lt @a] "\n"]
