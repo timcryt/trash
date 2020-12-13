@@ -97,44 +97,38 @@ $set (i j (code l)) ([@int 0] [@int 0] [$code _len])
     
     $set (code inst) [$code without @i {(@1 $1)}]
     $set (data count) [$data without @i {(@1 $1)}]
-
-    $set j [@if {@inst eq ">"} {@j add @count} else {@j}]
-
-    $set mem [@if {@inst eq "+"} 
-        <{
-            $mem with @j {
-                $set r [$1 add @count] sub 256
-                @if {@r lt 0} {@r add 256} else {@r}
-            }
-        } mem> else <{$mem} mem>
-    ]
-
-    $set mem [$mem with @j {@if {@inst eq "N"} {@int 0} else <{$1} 1>}]
-
     $set (mem f) [$mem without @j {(@1 $1)}] 
 
-    $set stdout [@if {@inst eq "."} <{
-            $stdout [@f chr]
-        } stdout> else <{$stdout} stdout>
-    ]
-
-    $set (stdin mem) [@if {@inst eq ","} <{
-            $set (stdin char) [$stdin read]
-            $set mem [$mem with @j {@char rem 256}]
-            ($stdin $mem)
-        } stdin mem> else <{($stdin $mem)} stdin mem>
-    ]
-
-    $set (data i) [@if {@and [@inst eq "["] [@f eq 0]} <{
-            $data without @i {(@1 $1)}
-        } data> else <{($data @i)} data>
-    ]
-
-    $set (data i) [@if {@and [@inst eq "]"] [@f gt 0]} <{
-            $data without @i {(@1 $1)}
-        } data> else <{($data @i)} data>
-    ]
-    ([@i add 1] [@i add 1] $j $code $data $mem $stdin $stdout)
+    [[@if {@inst eq ">"} <{
+        (@i @i [@j add @count] $code $data $mem $stdin $stdout)
+    } code data mem stdin stdout> else <{
+        @if {@inst eq "+"} <{
+            $set mem [$mem with @j {
+                $set r [[$1 add @count] sub 256]
+                @if {@r lt 0} <{$r add 256} r> else <{$r} r>
+            }]
+            (@i @i @j $code $data $mem $stdin $stdout)
+        } code data mem stdin stdout> else <{
+            @if {@inst eq "N"} <{
+                (@i @i @j $code $data [$mem with @j {[@int 0]}] $stdin $stdout)
+            } code data mem stdin stdout> else <{
+                @if {@or [@and [@inst eq "["] [@f eq 0]] [@and [@inst eq "]"] [@f gt 0]]} <{
+                    (@count @count @j $code $data $mem $stdin $stdout)
+                } code data mem stdin stdout> else <{
+                    @if {@inst eq "."} <{
+                        (@i @i @j $code $data $mem $stdin [$stdout [@f chr]])
+                    } code data mem stdin stdout> else <{
+                        @if {@inst eq ","} <{
+                            $set (stdin x) [$stdin read]
+                            (@i @i @j $code $data [$mem with @j <{$x} x>] $stdin $stdout)
+                        } code data mem stdin stdout> else <{
+                            (@i @i @j $code $data $mem $stdin $stdout)
+                        } code data mem stdin stdout>
+                    } code data mem stdin stdout>
+                } code data mem stdin stdout>
+            } code data mem stdin stdout>
+        } code data mem stdin stdout>
+    } code data mem stdin stdout>] with 1 {$1 add 1}] with 0 {$1 add 1}
 }
 
 ""
