@@ -8,3 +8,11 @@ edition = "2018"
 fnv = "1"
 pest = "2"
 pest_derive = "2.1"
+
+[[bin]]
+name = "trash"
+path = "src/main.rs"
+
+[lib]
+name = "trash"
+path = "src/lib.rs"
