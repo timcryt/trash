@@ -1,7 +1,7 @@
 pub mod error;
 mod objects;
 
-use std::{any::*, sync::Arc};
+use std::{any::*, ops::Range, sync::Arc};
 
 use fnv::{FnvHashMap, FnvHashSet};
 
@@ -67,7 +67,7 @@ impl Vars {
 struct TrashParser;
 
 #[derive(Clone)]
-enum ObjDef {
+enum Def {
     String(String),
     Closure(Arc<Parsed>, String),
     MoveClosure(Arc<Parsed>, String, Vec<String>),
@@ -75,6 +75,12 @@ enum ObjDef {
     ObjClone(String),
     Call(Box<(ObjDef, Vec<ObjDef>)>),
     Tuple(Vec<ObjDef>),
+}
+
+#[derive(Clone)]
+struct ObjDef {
+    span: Range<usize>,
+    def: Def,
 }
 
 #[derive(Clone)]
@@ -229,19 +235,32 @@ impl Parsed {
         )
     }
 
+    fn into_range(span: pest::Span) -> Range<usize> {
+        Range {
+            start: span.start(),
+            end: span.end(),
+        }
+    }
+
     fn parse_obj(obj: pest::iterators::Pair<Rule>, moved_vars: &mut Set<String>) -> ObjDef {
         match obj.as_rule() {
-            Rule::string => ObjDef::String(obj.as_str().to_string()),
+            Rule::string => ObjDef {
+                span: Self::into_range(obj.as_span()),
+                def: Def::String(obj.as_str().to_string()),
+            },
 
-            Rule::literal_inner => ObjDef::String(
-                obj.into_inner()
-                    .map(|chr| match chr.as_str() {
-                        "\\n" => '\n',
-                        "\\\\" => '\\',
-                        other => other.chars().next().unwrap(),
-                    })
-                    .collect(),
-            ),
+            Rule::literal_inner => ObjDef {
+                span: Self::into_range(obj.as_span()),
+                def: Def::String(
+                    obj.into_inner()
+                        .map(|chr| match chr.as_str() {
+                            "\\n" => '\n',
+                            "\\\\" => '\\',
+                            other => other.chars().next().unwrap(),
+                        })
+                        .collect(),
+                ),
+            },
 
             Rule::ident => match &obj.as_str()[0..=0] {
                 "$" => {
@@ -251,7 +270,7 @@ impl Parsed {
                             pest::error::Error::<()>::new_from_span(
                                 pest::error::ErrorVariant::CustomError {
                                     message: format!(
-                                        "Error, variable {} is guaranteed moved",
+                                        "Error, variable {} is guaranteed moved ",
                                         &obj.as_str()[1..]
                                     )
                                     .to_owned()
@@ -263,38 +282,58 @@ impl Parsed {
                         moved_vars.insert(obj.as_str()[1..].to_string());
                     }
 
-                    ObjDef::ObjMove(obj.as_str()[1..].to_string())
+                    ObjDef {
+                        span: Self::into_range(obj.as_span()),
+                        def: Def::ObjMove(obj.as_str()[1..].to_string()),
+                    }
                 }
-                "@" => ObjDef::ObjClone(obj.as_str()[1..].to_string()),
+                "@" => ObjDef {
+                    span: Self::into_range(obj.as_span()),
+                    def: Def::ObjClone(obj.as_str()[1..].to_string()),
+                },
                 _ => unreachable!(),
             },
 
             Rule::call | Rule::call_inner => {
+                let span = obj.as_span();
                 let mut call_iter = obj.into_inner();
                 let first = call_iter.next().unwrap();
-                ObjDef::Call(Box::new(Self::parse_call(first, call_iter, moved_vars)))
+                ObjDef {
+                    span: Self::into_range(span),
+                    def: Def::Call(Box::new(Self::parse_call(first, call_iter, moved_vars))),
+                }
             }
 
-            Rule::closure_inner => ObjDef::Closure(
-                Arc::new(Parsed::parse(obj.as_str())),
-                obj.as_str().to_string(),
-            ),
+            Rule::closure_inner => ObjDef {
+                span: Self::into_range(obj.as_span()),
+                def: Def::Closure(
+                    Arc::new(Parsed::parse(obj.as_str())),
+                    obj.as_str().to_string(),
+                ),
+            },
 
-            Rule::tuple => ObjDef::Tuple(
-                obj.into_inner()
-                    .map(|x| Self::parse_obj(x, moved_vars))
-                    .collect(),
-            ),
+            Rule::tuple => ObjDef {
+                span: Self::into_range(obj.as_span()),
+                def: Def::Tuple(
+                    obj.into_inner()
+                        .map(|x| Self::parse_obj(x, moved_vars))
+                        .collect(),
+                ),
+            },
 
             Rule::move_closure => {
+                let span = obj.as_span();
                 let mut clos_iter = obj.into_inner();
                 let clos_str = clos_iter.next().unwrap().as_str();
                 let clos_vars = clos_iter.map(|x| x.as_str().to_string()).collect();
-                ObjDef::MoveClosure(
-                    Arc::new(Parsed::parse(clos_str)),
-                    clos_str.to_string(),
-                    clos_vars,
-                )
+                ObjDef {
+                    span: Self::into_range(span),
+                    def: Def::MoveClosure(
+                        Arc::new(Parsed::parse(clos_str)),
+                        clos_str.to_string(),
+                        clos_vars,
+                    ),
+                }
             }
 
             _ => unreachable!(),
@@ -334,26 +373,34 @@ impl Code {
         mut vars: Vars,
         scope: &mut Vec<Vars>,
     ) -> (Box<dyn Object>, Vars) {
-        match value {
-            ObjDef::String(s) => (Box::new(s.to_string()), vars),
+        match &value.def {
+            Def::String(s) => (Box::new(s.to_string()), vars),
 
-            ObjDef::Closure(p, c) => (Box::new(Code(c.to_string(), Some(Arc::clone(p)))), vars),
+            Def::Closure(p, c) => (Box::new(Code(c.to_string(), Some(Arc::clone(p)))), vars),
 
-            ObjDef::ObjMove(name) => {
-                let obj = vars
-                    .get(&name)
-                    .unwrap_or_else(|| panic!("No such variable, {}", name));
+            Def::ObjMove(name) => {
+                let obj = vars.get(&name).unwrap_or_else(|| {
+                    panic!(
+                        "No such variable, {}\n at {}",
+                        name,
+                        &self.0[value.span.clone()]
+                    )
+                });
                 (obj, vars)
             }
 
-            ObjDef::ObjClone(name) => {
-                let obj = vars
-                    .get_cloned(&scope, &name)
-                    .unwrap_or_else(|| panic!("No such variable, {}", name));
+            Def::ObjClone(name) => {
+                let obj = vars.get_cloned(&scope, &name).unwrap_or_else(|| {
+                    panic!(
+                        "No such variable, {}\n at {}",
+                        name,
+                        &self.0[value.span.clone()]
+                    )
+                });
                 (obj, vars)
             }
 
-            ObjDef::Call(b) => {
+            Def::Call(b) => {
                 let (obj, args) = b.as_ref();
                 let x = self.get_value(&obj, vars, scope);
                 vars = x.1;
@@ -362,10 +409,15 @@ impl Code {
                 scope.push(vars);
                 let res = x.0.call(y.0, scope);
                 vars = scope.pop().unwrap();
-                (res.unwrap(), vars)
+                (
+                    res.unwrap_or_else(|e| {
+                        panic!("Error: {} at {}", e, &self.0[value.span.clone()])
+                    }),
+                    vars,
+                )
             }
 
-            ObjDef::Tuple(objs) => {
+            Def::Tuple(objs) => {
                 let mut tup = Vec::new();
                 for obj in objs {
                     let x = self.get_value(obj, vars, scope);
@@ -375,7 +427,7 @@ impl Code {
                 (Box::new(tup), vars)
             }
 
-            ObjDef::MoveClosure(p, c, args) => (
+            Def::MoveClosure(p, c, args) => (
                 Box::new(MovClos(
                     Code(c.to_string(), Some(Arc::clone(p))),
                     args.clone(),
