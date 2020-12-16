@@ -3,31 +3,37 @@ use crate::core::*;
 pub struct IfStatement;
 
 impl Object for IfStatement {
-    fn clone(&self) -> Box<dyn Object> {
-        Box::new(IfStatement)
+    fn clone(&self) -> error::TrashResult {
+        Ok(Box::new(IfStatement))
     }
 
-    fn call(self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object> {
+    fn call(self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> error::TrashResult {
         let cond = params
             .get("1")
-            .unwrap_or_else(|| panic!("Expected condition"));
+            .ok_or_else(|| error::TrashError::Custom("Expected condition".to_owned()))?;
         let then_call = params
             .get("2")
-            .unwrap_or_else(|| panic!("Expected then call"));
-        let _ = params
+            .ok_or_else(|| error::TrashError::Custom("Expected then call".to_owned()))?;
+        match params
             .get("3")
-            .map(|x| match x.to_string().as_str() {
-                "else" => (),
-                other => panic!("Expected else, found {}", other),
-            })
-            .unwrap_or_else(|| panic!("Expected else"));
+            .ok_or_else(|| error::TrashError::Custom("Expected else".to_owned()))?
+            .to_string()
+            .as_str()
+        {
+            "else" => (),
+            other => Err(error::TrashError::Custom(
+                format!("Expected 'else', found {}", other).to_string(),
+            ))?,
+        };
         let else_call = params
             .get("4")
-            .unwrap_or_else(|| panic!("Expected else call"));
+            .ok_or_else(|| error::TrashError::Custom("Expected else call".to_owned()))?;
 
         let (cond_res, cond) = {
-            let mut res = cond.call(Vars::new(), scope).to_tuple();
-            let cond = res.pop().unwrap();
+            let mut res = cond.call(Vars::new(), scope)?.to_tuple();
+            let cond = res.pop().ok_or_else(|| {
+                error::TrashError::Custom("expected at least 1 element in tuple".to_string())
+            })?;
             (res, cond)
         };
         match cond.to_string().as_str() {

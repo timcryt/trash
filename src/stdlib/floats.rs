@@ -5,31 +5,31 @@ use std::any::*;
 pub struct Float;
 
 impl Float {
-    fn float(var: Box<dyn Object>) -> Box<dyn Object> {
+    fn float(var: Box<dyn Object>) -> error::TrashResult {
         if var.id() == 0.0f64.type_id() {
-            var
+            Ok(var)
         } else if var.id() == 0i64.type_id() {
-            Box::new(unsafe {*(var.as_ref() as *const dyn Object as *const i64)} as f64)
+            Ok(Box::new(
+                unsafe { *(var.as_ref() as *const dyn Object as *const i64) } as f64,
+            ))
         } else {
-            Box::new(
-                var.to_string()
-                    .parse::<f64>()
-                    .unwrap_or_else(|_| panic!("Expected number, found string")),
-            )
+            Ok(Box::new(var.to_string().parse::<f64>().map_err(|_| {
+                error::TrashError::UnexpectedType("float".to_owned(), "string".to_owned())
+            })?))
         }
     }
 }
 
 impl Object for Float {
-    fn clone(&self) -> Box<dyn Object> {
-        Box::new(Float)
+    fn clone(&self) -> error::TrashResult {
+        Ok(Box::new(Float))
     }
 
-    fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
+    fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {
         Self::float(
             params
                 .get("1")
-                .unwrap_or_else(|| panic!("Expected 1 argument, found 0")),
+                .ok_or(error::TrashError::NotEnoughArgs(0, 1))?,
         )
     }
 
@@ -43,38 +43,36 @@ impl Object for Float {
 }
 
 impl Object for f64 {
-    fn clone(&self) -> Box<dyn Object> {
-        Box::new(*self)
+    fn clone(&self) -> error::TrashResult {
+        Ok(Box::new(*self))
     }
 
-    fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> Box<dyn Object> {
+    fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {
         match params.get("1").map(|x| x.to_string()) {
             Some(method) => match method.as_str() {
                 op if op == "add" || op == "sub" || op == "mul" || op == "div" => {
                     let n = params
                         .get("2")
-                        .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));
-                    let num = unsafe {
-                        *(Float::float(n).as_ref() as *const dyn Object as *const f64)
-                    };
+                        .ok_or(error::TrashError::NotEnoughArgs(0, 1))?;
+                    let num =
+                        unsafe { *(Float::float(n)?.as_ref() as *const dyn Object as *const f64) };
 
-                    Box::new(match op {
+                    Ok(Box::new(match op {
                         "add" => *self + num,
                         "sub" => *self - num,
                         "mul" => *self * num,
                         "div" => *self / num,
                         _ => unreachable!(),
-                    })
+                    }))
                 }
 
                 op if op == "eq" || op == "gt" || op == "lt" => {
                     let n = params
                         .get("2")
-                        .unwrap_or_else(|| panic!("Expected 1 argument, found 0"));
-                    let num = unsafe {
-                        *(Float::float(n).as_ref() as *const dyn Object as *const f64)
-                    };
-                    Box::new(
+                        .ok_or(error::TrashError::NotEnoughArgs(0, 1))?;
+                    let num =
+                        unsafe { *(Float::float(n)?.as_ref() as *const dyn Object as *const f64) };
+                    Ok(Box::new(
                         match op {
                             "eq" => (*self - num).abs() / (*self + num) < std::f64::EPSILON,
                             "gt" => *self > num,
@@ -82,7 +80,7 @@ impl Object for f64 {
                             _ => unreachable!(),
                         }
                         .to_string(),
-                    )
+                    ))
                 }
 
                 op if op == "sqrt"
@@ -93,20 +91,20 @@ impl Object for f64 {
                     || op == "log"
                     || op == "ln" =>
                 {
-                    Box::new(match op {
+                    Ok(Box::new(match op {
                         "sqrt" => self.sqrt(),
                         "sin" => self.sin(),
                         "cos" => self.cos(),
                         "tan" | "tg" => self.tan(),
                         "log" | "ln" => self.ln(),
                         _ => unreachable!(),
-                    })
+                    }))
                 }
 
-                other => panic!("Unknown method {}", other),
+                other => Err(error::TrashError::UnknownMethod(other.to_string()))?,
             },
 
-            None => self,
+            None => Ok(self),
         }
     }
 

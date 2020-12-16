@@ -1,3 +1,4 @@
+pub mod error;
 mod objects;
 
 use std::{any::*, sync::Arc};
@@ -7,8 +8,8 @@ use fnv::{FnvHashMap, FnvHashSet};
 use pest::Parser;
 
 pub trait Object: Any {
-    fn clone(&self) -> Box<dyn Object>;
-    fn call(self: Box<Self>, params: Vars, scope: &mut Vec<Vars>) -> Box<dyn Object>;
+    fn clone(&self) -> error::TrashResult;
+    fn call(self: Box<Self>, params: Vars, scope: &mut Vec<Vars>) -> error::TrashResult;
     fn to_string(self: Box<Self>) -> String;
     fn to_tuple(self: Box<Self>) -> Vec<Box<dyn Object>>;
     fn id(&self) -> TypeId {
@@ -49,11 +50,11 @@ impl Vars {
     pub fn get_cloned(&self, scope: &&mut Vec<Self>, name: &str) -> Option<Box<dyn Object>> {
         self.0
             .get(name)
-            .map(|x| Object::clone(x.as_ref()))
+            .map(|x| Object::clone(x.as_ref()).unwrap())
             .or_else(|| {
                 for sclvl in scope.iter().rev() {
                     if let Some(r) = sclvl.0.get(name) {
-                        return Some(Object::clone(r.as_ref()));
+                        return Some(Object::clone(r.as_ref()).unwrap());
                     }
                 }
                 None
@@ -361,7 +362,7 @@ impl Code {
                 scope.push(vars);
                 let res = x.0.call(y.0, scope);
                 vars = scope.pop().unwrap();
-                (res, vars)
+                (res.unwrap(), vars)
             }
 
             ObjDef::Tuple(objs) => {
@@ -432,7 +433,7 @@ impl Code {
                     let y = self.collect_args(&args, vars, scope);
                     vars = y.1;
                     scope.push(vars);
-                    r = x.0.call(y.0, scope);
+                    r = x.0.call(y.0, scope).unwrap();
                     vars = scope.pop().unwrap();
                 }
             }
