@@ -96,7 +96,7 @@ impl Parsed {
         let mut moved_vars = Set::default();
         Parsed(
             TrashParser::parse(Rule::code, code)
-                .unwrap_or_else(|e| panic!("{}", e))
+                .unwrap_or_else(|e| panic!("{}", Self::find_error(code, code, e)))
                 .next()
                 .unwrap()
                 .into_inner()
@@ -105,12 +105,28 @@ impl Parsed {
                         let mut call_iter = pair.into_inner();
                         let first = call_iter.next().unwrap();
                         if first.as_str() == "$set" {
-                            let names = call_iter
-                                .next()
-                                .unwrap_or_else(|| panic!("Expected variable name"));
-                            let values = call_iter
-                                .next()
-                                .unwrap_or_else(|| panic!("Expected variable value"));
+                            let names = call_iter.next().unwrap_or_else(|| {
+                                panic!(
+                                    "{}",
+                                    pest::error::Error::<()>::new_from_span(
+                                        pest::error::ErrorVariant::CustomError {
+                                            message: "Expected variable name".to_owned()
+                                        },
+                                        first.as_span(),
+                                    )
+                                )
+                            });
+                            let values = call_iter.next().unwrap_or_else(|| {
+                                panic!(
+                                    "{}",
+                                    pest::error::Error::<()>::new_from_span(
+                                        pest::error::ErrorVariant::CustomError {
+                                            message: "Expected variable value".to_owned()
+                                        },
+                                        first.as_span(),
+                                    )
+                                )
+                            });
                             let obj = Self::parse_obj(values, &mut moved_vars);
                             Some(Call::SetOp(
                                 Self::parse_set_names(names, &mut moved_vars),
@@ -125,10 +141,48 @@ impl Parsed {
                         }
                     }
                     Rule::EOI => None,
-                    other => panic!("{:?}", other),
+                    _ => unreachable!(),
                 })
                 .collect(),
         )
+    }
+
+    fn find_error(
+        origin: &str,
+        code: &str,
+        error: pest::error::Error<Rule>,
+    ) -> pest::error::Error<Rule> {
+        if let pest::error::InputLocation::Pos(pos) = error.location {
+            let err = if &code[pos..pos + 1] == "{" {
+                Self::find_error(
+                    origin,
+                    &code[(pos + 1)..],
+                    TrashParser::parse(Rule::code, &code[(pos + 1..)]).unwrap_err(),
+                )
+            } else if &code[pos..pos + 2] == "<{" {
+                Self::find_error(
+                    origin,
+                    &code[(pos + 2)..],
+                    TrashParser::parse(Rule::code, &code[(pos + 2..)]).unwrap_err(),
+                )
+            } else {
+                return error;
+            };
+            match err.location {
+                pest::error::InputLocation::Pos(rel_pos) => pest::error::Error::new_from_pos(
+                    err.variant,
+                    pest::Position::new(origin, rel_pos + pos).unwrap(),
+                ),
+                pest::error::InputLocation::Span((rel_start, rel_end)) => {
+                    pest::error::Error::new_from_span(
+                        err.variant,
+                        pest::Span::new(origin, rel_start + pos, rel_end + pos).unwrap(),
+                    )
+                }
+            }
+        } else {
+            error
+        }
     }
 
     fn parse_set_names(
@@ -149,7 +203,16 @@ impl Parsed {
             ),
 
             other => {
-                panic!("Expected string or tuple, found {:?}", other);
+                panic!(
+                    "{}",
+                    pest::error::Error::<()>::new_from_span(
+                        pest::error::ErrorVariant::CustomError {
+                            message: format!("Expected string or tuple, found {:?}", other)
+                                .to_owned()
+                        },
+                        names.as_span(),
+                    )
+                )
             }
         }
     }
@@ -169,20 +232,32 @@ impl Parsed {
         match obj.as_rule() {
             Rule::string => ObjDef::String(obj.as_str().to_string()),
 
-            Rule::literal_inner => {
-                ObjDef::String(obj.into_inner().map(|chr|
-                    match chr.as_str() {
+            Rule::literal_inner => ObjDef::String(
+                obj.into_inner()
+                    .map(|chr| match chr.as_str() {
                         "\\n" => '\n',
                         "\\\\" => '\\',
                         other => other.chars().next().unwrap(),
-                    }
-                ).collect())
-            }
+                    })
+                    .collect(),
+            ),
 
             Rule::ident => match &obj.as_str()[0..=0] {
                 "$" => {
                     if moved_vars.contains(&obj.as_str()[1..]) {
-                        panic!("Error, variable {} is guaranteed moved", &obj.as_str()[1..]);
+                        panic!(
+                            "{}",
+                            pest::error::Error::<()>::new_from_span(
+                                pest::error::ErrorVariant::CustomError {
+                                    message: format!(
+                                        "Error, variable {} is guaranteed moved",
+                                        &obj.as_str()[1..]
+                                    )
+                                    .to_owned()
+                                },
+                                obj.as_span(),
+                            )
+                        );
                     } else {
                         moved_vars.insert(obj.as_str()[1..].to_string());
                     }
