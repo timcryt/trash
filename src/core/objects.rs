@@ -1,4 +1,5 @@
 use crate::core::*;
+use dyn_fmt::AsStrFormatExt;
 
 impl Object for String {
     fn clone(&self) -> error::TrashResult {
@@ -66,6 +67,17 @@ impl Object for String {
                         r,
                     ]))
                 }
+
+                "format" => Ok(Box::new(
+                    self.to_string().format(
+                        &(2..)
+                            .map(|x| x.to_string())
+                            .map(|x| params.get(&x).map(|x| x.to_string()))
+                            .take_while(|x| x.is_some())
+                            .map(|x| x.unwrap())
+                            .collect::<Vec<_>>(),
+                    ),
+                )),
 
                 _ => Err(error::TrashError::UnknownMethod(method))?,
             },
