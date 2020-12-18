@@ -47,14 +47,14 @@ impl Vars {
         self.0.remove(name)
     }
 
-    pub fn get_cloned(&self, scope: &&mut Vec<Self>, name: &str) -> Option<Box<dyn Object>> {
+    pub fn get_cloned(&self, scope: &&mut Vec<Self>, name: &str) -> Option<error::TrashResult> {
         self.0
             .get(name)
-            .map(|x| Object::clone(x.as_ref()).unwrap())
+            .map(|x| Object::clone(x.as_ref()))
             .or_else(|| {
                 for sclvl in scope.iter().rev() {
                     if let Some(r) = sclvl.0.get(name) {
-                        return Some(Object::clone(r.as_ref()).unwrap());
+                        return Some(Object::clone(r.as_ref()));
                     }
                 }
                 None
@@ -397,7 +397,12 @@ impl Code {
                         &self.0[value.span.clone()]
                     )
                 });
-                (obj, vars)
+                (
+                    obj.unwrap_or_else(|e| {
+                        panic!("Error: {} at {}", e, &self.0[value.span.clone()])
+                    }),
+                    vars,
+                )
             }
 
             Def::Call(b) => {
