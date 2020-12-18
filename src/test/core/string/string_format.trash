@@ -1,0 +1,4 @@
+$set stdout [$stdout ["{}a{}b{}c" format 1 2 3] "\n"]
+$set stdout [$stdout ["{}a{}b{}c" format 1 2 3 4] "\n"]
+$set stdout [$stdout ["{}a{}b{}c" format 1 2] "\n"]
+$set stdout [$stdout ["{{}}{}" format 1 2] "\n"]

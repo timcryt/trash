@@ -121,6 +121,11 @@ fn test_string_chars() {
 }
 
 #[test]
+fn test_string_format() {
+    run_test("core/string/string_format");
+}
+
+#[test]
 fn test_tuple_push_pop() {
     run_test("core/tuple/push_pop");
 }
