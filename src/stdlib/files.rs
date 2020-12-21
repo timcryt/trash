@@ -20,7 +20,7 @@ impl<T: Read + Any> ReadStream<T> {
 
 impl<T: Read + Any> Object for ReadStream<T> {
     fn clone(&self) -> error::TrashResult {
-        Err(error::TrashError::LinearTypeCloning)?
+        Err(error::TrashError::LinearTypeCloning.into())
     }
 
     fn call(mut self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {
@@ -29,7 +29,7 @@ impl<T: Read + Any> Object for ReadStream<T> {
             let val = match self.0.read_exact(&mut buf) {
                 Ok(_) => buf[0] as i64,
                 Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => -1i64,
-                Err(e) => Err(e)?,
+                Err(e) => return Err(e.into()),
             };
             Ok(Box::new(vec![self as Box<dyn Object>, Box::new(val)]))
         } else {
@@ -48,7 +48,7 @@ impl<T: Read + Any> Object for ReadStream<T> {
 
 impl<T: Write + Any> Object for WriteStream<T> {
     fn clone(&self) -> error::TrashResult {
-        Err(error::TrashError::LinearTypeCloning)?
+        Err(error::TrashError::LinearTypeCloning.into())
     }
 
     fn call(mut self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {

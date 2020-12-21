@@ -22,9 +22,15 @@ type Set<K> = FnvHashSet<K>;
 
 pub struct Vars(Map<String, Box<dyn Object>>);
 
+impl Default for Vars {
+    fn default() -> Self {
+        Vars(FnvHashMap::default())
+    }
+}
+
 impl Vars {
     pub fn new() -> Self {
-        Vars(FnvHashMap::default())
+        Vars::default()
     }
 
     pub fn from_vec(v: Vec<Box<dyn Object>>) -> Self {
@@ -215,7 +221,6 @@ impl Parsed {
                     pest::error::Error::<()>::new_from_span(
                         pest::error::ErrorVariant::CustomError {
                             message: format!("Expected string or tuple, found {:?}", other)
-                                .to_owned()
                         },
                         names.as_span(),
                     )
@@ -235,7 +240,7 @@ impl Parsed {
         )
     }
 
-    fn into_range(span: pest::Span) -> Range<usize> {
+    fn span_into_range(span: pest::Span) -> Range<usize> {
         Range {
             start: span.start(),
             end: span.end(),
@@ -245,12 +250,12 @@ impl Parsed {
     fn parse_obj(obj: pest::iterators::Pair<Rule>, moved_vars: &mut Set<String>) -> ObjDef {
         match obj.as_rule() {
             Rule::string => ObjDef {
-                span: Self::into_range(obj.as_span()),
+                span: Self::span_into_range(obj.as_span()),
                 def: Def::String(obj.as_str().to_string()),
             },
 
             Rule::literal_inner => ObjDef {
-                span: Self::into_range(obj.as_span()),
+                span: Self::span_into_range(obj.as_span()),
                 def: Def::String(
                     obj.into_inner()
                         .map(|chr| match chr.as_str() {
@@ -273,7 +278,6 @@ impl Parsed {
                                         "Error, variable {} is guaranteed moved ",
                                         &obj.as_str()[1..]
                                     )
-                                    .to_owned()
                                 },
                                 obj.as_span(),
                             )
@@ -283,12 +287,12 @@ impl Parsed {
                     }
 
                     ObjDef {
-                        span: Self::into_range(obj.as_span()),
+                        span: Self::span_into_range(obj.as_span()),
                         def: Def::ObjMove(obj.as_str()[1..].to_string()),
                     }
                 }
                 "@" => ObjDef {
-                    span: Self::into_range(obj.as_span()),
+                    span: Self::span_into_range(obj.as_span()),
                     def: Def::ObjClone(obj.as_str()[1..].to_string()),
                 },
                 _ => unreachable!(),
@@ -299,13 +303,13 @@ impl Parsed {
                 let mut call_iter = obj.into_inner();
                 let first = call_iter.next().unwrap();
                 ObjDef {
-                    span: Self::into_range(span),
+                    span: Self::span_into_range(span),
                     def: Def::Call(Box::new(Self::parse_call(first, call_iter, moved_vars))),
                 }
             }
 
             Rule::closure_inner => ObjDef {
-                span: Self::into_range(obj.as_span()),
+                span: Self::span_into_range(obj.as_span()),
                 def: Def::Closure(
                     Arc::new(Parsed::parse(obj.as_str())),
                     obj.as_str().to_string(),
@@ -313,7 +317,7 @@ impl Parsed {
             },
 
             Rule::tuple => ObjDef {
-                span: Self::into_range(obj.as_span()),
+                span: Self::span_into_range(obj.as_span()),
                 def: Def::Tuple(
                     obj.into_inner()
                         .map(|x| Self::parse_obj(x, moved_vars))
@@ -327,7 +331,7 @@ impl Parsed {
                 let clos_str = clos_iter.next().unwrap().as_str();
                 let clos_vars = clos_iter.map(|x| x.as_str().to_string()).collect();
                 ObjDef {
-                    span: Self::into_range(span),
+                    span: Self::span_into_range(span),
                     def: Def::MoveClosure(
                         Arc::new(Parsed::parse(clos_str)),
                         clos_str.to_string(),

@@ -79,7 +79,7 @@ impl Object for String {
                     ),
                 )),
 
-                _ => Err(error::TrashError::UnknownMethod(method))?,
+                _ => Err(error::TrashError::UnknownMethod(method).into()),
             },
             _ => Ok(self),
         }
@@ -265,7 +265,7 @@ impl Object for MovClos {
         })?;
         for name in self.1 {
             let value = scope_vars.get(&name).ok_or_else(|| {
-                error::TrashError::Custom(format!("No such variable {}", name).to_string())
+                error::TrashError::Custom(format!("No such variable {}", name))
             })?;
             params.add(name, value);
         }

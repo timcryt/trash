@@ -101,7 +101,7 @@ impl Object for f64 {
                     }))
                 }
 
-                other => Err(error::TrashError::UnknownMethod(other.to_string()))?,
+                other => Err(error::TrashError::UnknownMethod(other.to_string()).into()),
             },
 
             None => Ok(self),

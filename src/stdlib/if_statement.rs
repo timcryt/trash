@@ -21,9 +21,9 @@ impl Object for IfStatement {
             .as_str()
         {
             "else" => (),
-            other => Err(error::TrashError::Custom(
-                format!("Expected 'else', found {}", other).to_string(),
-            ))?,
+            other => return Err(error::TrashError::Custom(
+                format!("Expected 'else', found {}", other),
+            ).into()),
         };
         let else_call = params
             .get("4")

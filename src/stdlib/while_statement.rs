@@ -31,10 +31,10 @@ impl Object for WhileStatement {
                 {
                     "true" => (),
                     "false" => break Ok(Box::new(firstset.collect::<Vec<_>>())),
-                    other => Err(error::TrashError::UnexpectedType(
+                    other => return Err(error::TrashError::UnexpectedType(
                         "boolean".to_owned(),
                         other.to_owned(),
-                    ))?,
+                    ).into()),
                 }
             }
             let locset = Vars::from_vec(firstset.collect());
