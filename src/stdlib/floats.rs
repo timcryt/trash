@@ -5,7 +5,7 @@ use std::any::*;
 pub struct Float;
 
 impl Float {
-    fn float(var: Box<dyn Object>) -> error::TrashResult {
+    pub fn float_obj(var: Box<dyn Object>) -> error::TrashResult {
         if var.id() == 0.0f64.type_id() {
             Ok(var)
         } else if var.id() == 0i64.type_id() {
@@ -13,9 +13,23 @@ impl Float {
                 unsafe { *(var.as_ref() as *const dyn Object as *const i64) } as f64,
             ))
         } else {
-            Ok(Box::new(var.to_string().parse::<f64>().map_err(|_| {
-                error::TrashError::UnexpectedType("float".to_owned(), "string".to_owned())
+            let t = var.to_string();
+            Ok(Box::new(t.parse::<f64>().map_err(|_| {
+                error::TrashError::UnexpectedType("float".to_owned(), t)
             })?))
+        }
+    }
+
+    pub fn float(var: Box<dyn Object>) -> Result<f64, String> {
+        if var.id() == 0.0f64.type_id() {
+            Ok(unsafe { *(var.as_ref() as *const dyn Object as *const f64) })
+        } else if var.id() == 0i64.type_id() {
+            Ok(
+                unsafe { *(var.as_ref() as *const dyn Object as *const i64) } as f64,
+            )
+        } else {
+            let t = var.to_string();
+            t.parse::<f64>().ok().ok_or(t)
         }
     }
 }
@@ -26,7 +40,7 @@ impl Object for Float {
     }
 
     fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {
-        Self::float(
+        Self::float_obj(
             params
                 .get("1")
                 .ok_or(error::TrashError::NotEnoughArgs(0, 1))?,
@@ -54,8 +68,7 @@ impl Object for f64 {
                     let n = params
                         .get("2")
                         .ok_or(error::TrashError::NotEnoughArgs(0, 1))?;
-                    let num =
-                        unsafe { *(Float::float(n)?.as_ref() as *const dyn Object as *const f64) };
+                    let num = Float::float(n).map_err(|e| error::TrashError::UnexpectedType("float".to_string(), e))?;
 
                     Ok(Box::new(match op {
                         "add" => *self + num,
@@ -70,8 +83,7 @@ impl Object for f64 {
                     let n = params
                         .get("2")
                         .ok_or(error::TrashError::NotEnoughArgs(0, 1))?;
-                    let num =
-                        unsafe { *(Float::float(n)?.as_ref() as *const dyn Object as *const f64) };
+                    let num = Float::float(n).map_err(|e| error::TrashError::UnexpectedType("float".to_string(), e))?;
                     Ok(Box::new(
                         match op {
                             "eq" => (*self - num).abs() / (*self + num) < std::f64::EPSILON,
