@@ -10,29 +10,29 @@ impl Object for IfStatement {
     fn call(self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> error::TrashResult {
         let cond = params
             .get("1")
-            .ok_or_else(|| error::TrashError::Custom("Expected condition".to_owned()))?;
+            .ok_or_else(|| TrashError::Custom("Expected condition".to_owned()))?;
         let then_call = params
             .get("2")
-            .ok_or_else(|| error::TrashError::Custom("Expected then call".to_owned()))?;
+            .ok_or_else(|| TrashError::Custom("Expected then call".to_owned()))?;
         match params
             .get("3")
-            .ok_or_else(|| error::TrashError::Custom("Expected else".to_owned()))?
+            .ok_or_else(|| TrashError::Custom("Expected else".to_owned()))?
             .to_string()
             .as_str()
         {
             "else" => (),
-            other => return Err(error::TrashError::Custom(
-                format!("Expected 'else', found {}", other),
-            ).into()),
+            other => {
+                return Err(TrashError::Custom(format!("Expected 'else', found {}", other)).into())
+            }
         };
         let else_call = params
             .get("4")
-            .ok_or_else(|| error::TrashError::Custom("Expected else call".to_owned()))?;
+            .ok_or_else(|| TrashError::Custom("Expected else call".to_owned()))?;
 
         let (cond_res, cond) = {
             let mut res = cond.call(Vars::new(), scope)?.to_tuple();
             let cond = res.pop().ok_or_else(|| {
-                error::TrashError::Custom("expected at least 1 element in tuple".to_string())
+                TrashError::Custom("expected at least 1 element in tuple".to_string())
             })?;
             (res, cond)
         };

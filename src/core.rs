@@ -7,6 +7,7 @@ use fnv::{FnvHashMap, FnvHashSet};
 
 use pest::Parser;
 
+pub use error::TrashError;
 pub trait Object: Any {
     fn clone(&self) -> error::TrashResult;
     fn call(self: Box<Self>, params: Vars, scope: &mut Vec<Vars>) -> error::TrashResult;

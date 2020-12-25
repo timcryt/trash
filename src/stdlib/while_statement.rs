@@ -10,17 +10,13 @@ impl Object for WhileStatement {
     fn call(self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> error::TrashResult {
         let mut firstset = params
             .get("1")
-            .ok_or(error::TrashError::NotEnoughArgs(0, 3))?
+            .ok_or(TrashError::NotEnoughArgs(0, 3))?
             .to_tuple()
             .into_iter();
-        let condfunc = params
-            .get("2")
-            .ok_or(error::TrashError::NotEnoughArgs(1, 3))?;
-        let body = params
-            .get("3")
-            .ok_or(error::TrashError::NotEnoughArgs(2, 3))?;
+        let condfunc = params.get("2").ok_or(TrashError::NotEnoughArgs(1, 3))?;
+        let body = params.get("3").ok_or(TrashError::NotEnoughArgs(2, 3))?;
         loop {
-            let first = firstset.next().ok_or(error::TrashError::OutOfBounds)?;
+            let first = firstset.next().ok_or(TrashError::OutOfBounds)?;
             {
                 let condset = Vars::from_vec(first.to_tuple());
 
@@ -31,10 +27,13 @@ impl Object for WhileStatement {
                 {
                     "true" => (),
                     "false" => break Ok(Box::new(firstset.collect::<Vec<_>>())),
-                    other => return Err(error::TrashError::UnexpectedType(
-                        "boolean".to_owned(),
-                        other.to_owned(),
-                    ).into()),
+                    other => {
+                        return Err(TrashError::UnexpectedType(
+                            "boolean".to_owned(),
+                            other.to_owned(),
+                        )
+                        .into())
+                    }
                 }
             }
             let locset = Vars::from_vec(firstset.collect());

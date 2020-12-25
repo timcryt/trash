@@ -20,7 +20,7 @@ impl<T: Read + Any> ReadStream<T> {
 
 impl<T: Read + Any> Object for ReadStream<T> {
     fn clone(&self) -> error::TrashResult {
-        Err(error::TrashError::LinearTypeCloning.into())
+        Err(TrashError::LinearTypeCloning.into())
     }
 
     fn call(mut self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {
@@ -48,7 +48,7 @@ impl<T: Read + Any> Object for ReadStream<T> {
 
 impl<T: Write + Any> Object for WriteStream<T> {
     fn clone(&self) -> error::TrashResult {
-        Err(error::TrashError::LinearTypeCloning.into())
+        Err(TrashError::LinearTypeCloning.into())
     }
 
     fn call(mut self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {

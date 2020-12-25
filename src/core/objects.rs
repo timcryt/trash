@@ -49,7 +49,7 @@ impl Object for String {
                     let str_to_compare = params
                         .get("2")
                         .map(|x| x.to_string())
-                        .ok_or(error::TrashError::NotEnoughArgs(0, 1))?;
+                        .ok_or(TrashError::NotEnoughArgs(0, 1))?;
                     Ok(Box::new((*self == str_to_compare).to_string()))
                 }
 
@@ -57,7 +57,7 @@ impl Object for String {
                     let str_to_compare = params
                         .get("2")
                         .map(|x| x.to_string())
-                        .ok_or(error::TrashError::NotEnoughArgs(0, 1))?;
+                        .ok_or(TrashError::NotEnoughArgs(0, 1))?;
 
                     let r = Box::new((*self == str_to_compare).to_string());
 
@@ -79,7 +79,7 @@ impl Object for String {
                     ),
                 )),
 
-                _ => Err(error::TrashError::UnknownMethod(method).into()),
+                _ => Err(TrashError::UnknownMethod(method).into()),
             },
             _ => Ok(self),
         }
@@ -114,16 +114,14 @@ impl Object for Vec<Box<dyn Object>> {
                 }
 
                 "push" => {
-                    let val = params
-                        .get("2")
-                        .ok_or(error::TrashError::NotEnoughArgs(0, 1))?;
+                    let val = params.get("2").ok_or(TrashError::NotEnoughArgs(0, 1))?;
                     self.push(val);
                     Ok(self as Box<dyn Object>)
                 }
 
                 "pop" => {
                     let el = self.pop().ok_or_else(|| {
-                        error::TrashError::Custom("Can't pop value from empty tuple".to_string())
+                        TrashError::Custom("Can't pop value from empty tuple".to_string())
                     })?;
                     Ok(Box::new(vec![self as Box<dyn Object>, el]))
                 }
@@ -138,12 +136,12 @@ impl Object for Vec<Box<dyn Object>> {
                 "with" => {
                     let ind_str = params
                         .get("2")
-                        .ok_or(error::TrashError::NotEnoughArgs(0, 2))?
+                        .ok_or(TrashError::NotEnoughArgs(0, 2))?
                         .to_string();
 
-                    let ind = ind_str.parse::<isize>().map_err(|_| {
-                        error::TrashError::UnexpectedType("integer".to_owned(), ind_str)
-                    })?;
+                    let ind = ind_str
+                        .parse::<isize>()
+                        .map_err(|_| TrashError::UnexpectedType("integer".to_owned(), ind_str))?;
 
                     let ind = if ind < 0 {
                         self.len() as isize + ind
@@ -151,14 +149,9 @@ impl Object for Vec<Box<dyn Object>> {
                         ind
                     } as usize;
 
-                    let clos = params
-                        .get("3")
-                        .ok_or(error::TrashError::NotEnoughArgs(1, 2))?;
+                    let clos = params.get("3").ok_or(TrashError::NotEnoughArgs(1, 2))?;
                     let mut t = Box::new("".to_string()) as Box<dyn Object>;
-                    std::mem::swap(
-                        self.get_mut(ind).ok_or(error::TrashError::OutOfBounds)?,
-                        &mut t,
-                    );
+                    std::mem::swap(self.get_mut(ind).ok_or(TrashError::OutOfBounds)?, &mut t);
                     self[ind] = clos.call(Vars::from_vec(vec![t]), scope)?;
                     Ok(self)
                 }
@@ -166,12 +159,12 @@ impl Object for Vec<Box<dyn Object>> {
                 "without" => {
                     let ind_str = params
                         .get("2")
-                        .ok_or(error::TrashError::NotEnoughArgs(0, 2))?
+                        .ok_or(TrashError::NotEnoughArgs(0, 2))?
                         .to_string();
 
-                    let ind = ind_str.parse::<isize>().map_err(|_| {
-                        error::TrashError::UnexpectedType("integer".to_owned(), ind_str)
-                    })?;
+                    let ind = ind_str
+                        .parse::<isize>()
+                        .map_err(|_| TrashError::UnexpectedType("integer".to_owned(), ind_str))?;
 
                     let ind = if ind < 0 {
                         self.len() as isize + ind
@@ -179,24 +172,17 @@ impl Object for Vec<Box<dyn Object>> {
                         ind
                     } as usize;
 
-                    let clos = params
-                        .get("3")
-                        .ok_or(error::TrashError::NotEnoughArgs(1, 2))?;
+                    let clos = params.get("3").ok_or(TrashError::NotEnoughArgs(1, 2))?;
                     let mut t = Box::new("".to_string()) as Box<dyn Object>;
-                    std::mem::swap(
-                        self.get_mut(ind).ok_or(error::TrashError::OutOfBounds)?,
-                        &mut t,
-                    );
+                    std::mem::swap(self.get_mut(ind).ok_or(TrashError::OutOfBounds)?, &mut t);
                     let mut res = clos.call(Vars::from_vec(vec![t]), scope)?.to_tuple();
                     self[ind] = res.pop().ok_or_else(|| {
-                        error::TrashError::Custom(
-                            "Expected tuple with at least 2 elements".to_string(),
-                        )
+                        TrashError::Custom("Expected tuple with at least 2 elements".to_string())
                     })?;
                     Ok(Box::new(vec![
                         self as Box<dyn Object>,
                         res.pop().ok_or_else(|| {
-                            error::TrashError::Custom(
+                            TrashError::Custom(
                                 "Expected tuple with at least 2 elements".to_string(),
                             )
                         })?,
@@ -206,12 +192,9 @@ impl Object for Vec<Box<dyn Object>> {
                 other => {
                     let i = other
                         .parse::<usize>()
-                        .map_err(|_| error::TrashError::UnknownMethod(other.to_string()))?;
+                        .map_err(|_| TrashError::UnknownMethod(other.to_string()))?;
                     let mut t = Box::new("".to_string()) as Box<dyn Object>;
-                    std::mem::swap(
-                        self.get_mut(i).ok_or(error::TrashError::OutOfBounds)?,
-                        &mut t,
-                    );
+                    std::mem::swap(self.get_mut(i).ok_or(TrashError::OutOfBounds)?, &mut t);
                     Ok(t)
                 }
             },
@@ -260,13 +243,13 @@ impl Object for MovClos {
     }
 
     fn call(self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> error::TrashResult {
-        let mut scope_vars = scope.pop().ok_or_else(|| {
-            error::TrashError::Custom("Can't move variables form scope".to_string())
-        })?;
+        let mut scope_vars = scope
+            .pop()
+            .ok_or_else(|| TrashError::Custom("Can't move variables form scope".to_string()))?;
         for name in self.1 {
-            let value = scope_vars.get(&name).ok_or_else(|| {
-                error::TrashError::Custom(format!("No such variable {}", name))
-            })?;
+            let value = scope_vars
+                .get(&name)
+                .ok_or_else(|| TrashError::Custom(format!("No such variable {}", name)))?;
             params.add(name, value);
         }
         scope.push(scope_vars);

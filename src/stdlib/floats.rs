@@ -15,7 +15,7 @@ impl Float {
         } else {
             let t = var.to_string();
             Ok(Box::new(t.parse::<f64>().map_err(|_| {
-                error::TrashError::UnexpectedType("float".to_owned(), t)
+                TrashError::UnexpectedType("float".to_owned(), t)
             })?))
         }
     }
@@ -24,9 +24,7 @@ impl Float {
         if var.id() == 0.0f64.type_id() {
             Ok(unsafe { *(var.as_ref() as *const dyn Object as *const f64) })
         } else if var.id() == 0i64.type_id() {
-            Ok(
-                unsafe { *(var.as_ref() as *const dyn Object as *const i64) } as f64,
-            )
+            Ok(unsafe { *(var.as_ref() as *const dyn Object as *const i64) } as f64)
         } else {
             let t = var.to_string();
             t.parse::<f64>().ok().ok_or(t)
@@ -40,11 +38,7 @@ impl Object for Float {
     }
 
     fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {
-        Self::float_obj(
-            params
-                .get("1")
-                .ok_or(error::TrashError::NotEnoughArgs(0, 1))?,
-        )
+        Self::float_obj(params.get("1").ok_or(TrashError::NotEnoughArgs(0, 1))?)
     }
 
     fn to_string(self: Box<Self>) -> String {
@@ -65,10 +59,9 @@ impl Object for f64 {
         match params.get("1").map(|x| x.to_string()) {
             Some(method) => match method.as_str() {
                 op if op == "add" || op == "sub" || op == "mul" || op == "div" => {
-                    let n = params
-                        .get("2")
-                        .ok_or(error::TrashError::NotEnoughArgs(0, 1))?;
-                    let num = Float::float(n).map_err(|e| error::TrashError::UnexpectedType("float".to_string(), e))?;
+                    let n = params.get("2").ok_or(TrashError::NotEnoughArgs(0, 1))?;
+                    let num = Float::float(n)
+                        .map_err(|e| TrashError::UnexpectedType("float".to_string(), e))?;
 
                     Ok(Box::new(match op {
                         "add" => *self + num,
@@ -80,10 +73,9 @@ impl Object for f64 {
                 }
 
                 op if op == "eq" || op == "gt" || op == "lt" => {
-                    let n = params
-                        .get("2")
-                        .ok_or(error::TrashError::NotEnoughArgs(0, 1))?;
-                    let num = Float::float(n).map_err(|e| error::TrashError::UnexpectedType("float".to_string(), e))?;
+                    let n = params.get("2").ok_or(TrashError::NotEnoughArgs(0, 1))?;
+                    let num = Float::float(n)
+                        .map_err(|e| TrashError::UnexpectedType("float".to_string(), e))?;
                     Ok(Box::new(
                         match op {
                             "eq" => (*self - num).abs() / (*self + num) < std::f64::EPSILON,
@@ -113,7 +105,7 @@ impl Object for f64 {
                     }))
                 }
 
-                other => Err(error::TrashError::UnknownMethod(other.to_string()).into()),
+                other => Err(TrashError::UnknownMethod(other.to_string()).into()),
             },
 
             None => Ok(self),
