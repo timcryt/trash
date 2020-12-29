@@ -58,7 +58,7 @@ impl Object for f64 {
     fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {
         match params.get("1").map(|x| x.to_string()) {
             Some(method) => match method.as_str() {
-                op if op == "add" || op == "sub" || op == "mul" || op == "div" => {
+                op @ "add" | op @ "sub" | op @ "mul" | op @ "div" => {
                     let n = params.get("2").ok_or(TrashError::NotEnoughArgs(0, 1))?;
                     let num = Float::float(n)
                         .map_err(|e| TrashError::UnexpectedType("float".to_string(), e))?;
@@ -72,7 +72,7 @@ impl Object for f64 {
                     }))
                 }
 
-                op if op == "eq" || op == "gt" || op == "lt" => {
+                op @ "eq" | op @ "gt" | op @ "lt" => {
                     let n = params.get("2").ok_or(TrashError::NotEnoughArgs(0, 1))?;
                     let num = Float::float(n)
                         .map_err(|e| TrashError::UnexpectedType("float".to_string(), e))?;
@@ -87,23 +87,20 @@ impl Object for f64 {
                     ))
                 }
 
-                op if op == "sqrt"
-                    || op == "sin"
-                    || op == "cos"
-                    || op == "tan"
-                    || op == "tg"
-                    || op == "log"
-                    || op == "ln" =>
-                {
-                    Ok(Box::new(match op {
-                        "sqrt" => self.sqrt(),
-                        "sin" => self.sin(),
-                        "cos" => self.cos(),
-                        "tan" | "tg" => self.tan(),
-                        "log" | "ln" => self.ln(),
-                        _ => unreachable!(),
-                    }))
-                }
+                op @ "sqrt"
+                | op @ "sin"
+                | op @ "cos"
+                | op @ "tan"
+                | op @ "tg"
+                | op @ "log"
+                | op @ "ln" => Ok(Box::new(match op {
+                    "sqrt" => self.sqrt(),
+                    "sin" => self.sin(),
+                    "cos" => self.cos(),
+                    "tan" | "tg" => self.tan(),
+                    "log" | "ln" => self.ln(),
+                    _ => unreachable!(),
+                })),
 
                 other => Err(TrashError::UnknownMethod(other.to_string()).into()),
             },

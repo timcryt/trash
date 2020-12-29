@@ -58,7 +58,7 @@ impl Object for i64 {
     fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {
         match params.get("1").map(|x| x.to_string()) {
             Some(method) => match method.as_str() {
-                op if op == "add" || op == "sub" || op == "mul" || op == "div" || op == "rem" => {
+                op @ "add" | op @ "sub" | op @ "mul" | op @ "div" | op @ "rem" => {
                     let n = params.get("2").ok_or(TrashError::NotEnoughArgs(0, 1))?;
                     let num = Int::int(n)
                         .map_err(|e| TrashError::UnexpectedType("int".to_string(), e))?;
@@ -73,7 +73,7 @@ impl Object for i64 {
                     }))
                 }
 
-                op if op == "eq" || op == "gt" || op == "lt" => {
+                op @ "eq" | op @ "gt" | op @ "lt" => {
                     let n = params.get("2").ok_or(TrashError::NotEnoughArgs(0, 1))?;
                     let num = Int::int(n)
                         .map_err(|e| TrashError::UnexpectedType("int".to_string(), e))?;
