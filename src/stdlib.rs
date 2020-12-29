@@ -2,6 +2,7 @@ pub mod files;
 pub mod floats;
 pub mod if_statement;
 pub mod integers;
+pub mod scanner;
 pub mod while_statement;
 
 use crate::core::Vars;
@@ -21,6 +22,7 @@ pub fn stdlib<T: Write + Any, U: Read + Any>(stdout: T, stdin: U) -> (Vars, Vec<
     s.add("int".to_string(), Box::new(integers::Int));
     s.add("float".to_string(), Box::new(floats::Float));
     s.add("asc".to_string(), Box::new(integers::Asc));
+    s.add("scanner".to_string(), Box::new(scanner::ScannerGen));
     v.add(
         "stdout".to_string(),
         Box::new(files::WriteStream::new(stdout)),
