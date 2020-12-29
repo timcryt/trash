@@ -11,8 +11,11 @@ $set is_prime {
     }] 1
 }
 
-"Minimum and maxmimum numbers"
-$set (i n) ([@int 2] [@int 1000])
+"Minimum and maximum numbers"
+$set i [@int 2]
+$set stdin [@scanner $stdin]
+$set (stdin n) [$stdin scan int]
+$set stdin [@scanner unwrap]
 
 $stdout [[@while (@i @i [@int 0]) {@not [@1 gt @n]} {
     $set (i c) ($1 $2)
