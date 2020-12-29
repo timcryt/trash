@@ -11,10 +11,9 @@ impl Object for ScannerGen {
     }
 
     fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {
-        dbg!();
         match params.get("1") {
             Some(obj) => Ok(Box::new(Scanner(obj))),
-            None => Ok(dbg!(self)),
+            None => Ok(self),
         }
     }
 
@@ -73,7 +72,6 @@ impl Scanner {
 
         let mut s = String::from(c);
         loop {
-            dbg!(&s);
             let t = self.next(scope)?;
             self = t.0;
             let t = t.1;
@@ -92,7 +90,6 @@ impl Object for Scanner {
     }
 
     fn call(mut self: Box<Self>, mut params: Vars, scope: &mut Vec<Vars>) -> error::TrashResult {
-        dbg!();
         match params.get("1").map(|x| x.to_string()) {
             Some(s) => match s.as_str() {
                 "scan" => (),
