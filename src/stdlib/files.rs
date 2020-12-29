@@ -27,8 +27,8 @@ impl<T: Read + Any> Object for ReadStream<T> {
         if params.get("1").is_some() {
             let mut buf = [0u8; 1];
             let val = match self.0.read_exact(&mut buf) {
-                Ok(_) => buf[0] as i64,
-                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => -1i64,
+                Ok(_) => (buf[0] as char).to_string(),
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => "".to_string(),
                 Err(e) => return Err(e.into()),
             };
             Ok(Box::new(vec![self as Box<dyn Object>, Box::new(val)]))
