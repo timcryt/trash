@@ -20,6 +20,7 @@ pub fn stdlib<T: Write + Any, U: Read + Any>(stdout: T, stdin: U) -> (Vars, Vec<
     );
     s.add("int".to_string(), Box::new(integers::Int));
     s.add("float".to_string(), Box::new(floats::Float));
+    s.add("asc".to_string(), Box::new(integers::Asc));
     v.add(
         "stdout".to_string(),
         Box::new(files::WriteStream::new(stdout)),

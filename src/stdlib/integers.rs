@@ -50,6 +50,33 @@ impl Object for Int {
     }
 }
 
+pub struct Asc;
+
+impl Object for Asc {
+
+    fn clone(&self) -> error::TrashResult {
+        Ok(Box::new(Asc))
+    }
+
+    fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {
+        match params.get("1").map(|x| x.to_string()) {
+            Some(chr) => {
+                Ok(Int::int_obj(Box::new(chr.bytes().next().map(|x| x as i64).unwrap_or(-1)))?)
+            }
+
+            None => Ok(Box::new(Asc)),
+        }
+    }
+
+    fn to_string(self: Box<Self>) -> String {
+        todo!()
+    }
+
+    fn to_tuple(self: Box<Self>) -> Vec<Box<dyn Object>> {
+        todo!()
+    }
+}
+
 impl Object for i64 {
     fn clone(&self) -> error::TrashResult {
         Ok(Box::new(*self))
