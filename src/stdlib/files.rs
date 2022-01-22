@@ -35,7 +35,7 @@ impl<T: Read + Any> Object for ReadStream<T> {
         } else {
             Ok(self)
         }
-    }
+    } 
 
     fn to_string(self: Box<Self>) -> String {
         "".to_string()
@@ -58,6 +58,7 @@ impl<T: Write + Any> Object for WriteStream<T> {
                 write!(self.0, " ")?;
             }
             write!(self.0, "{}", x.to_string())?;
+            self.0.flush()?;
             i += 1;
         }
         Ok(self)

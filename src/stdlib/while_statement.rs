@@ -28,7 +28,7 @@ impl Object for WhileStatement {
                     Err(other) => {
                         return Err(TrashError::UnexpectedType(
                             "boolean".to_owned(),
-                            other.to_owned(),
+                            other,
                         )
                         .into())
                     }

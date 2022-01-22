@@ -30,7 +30,7 @@ pub struct Scanner(Box<dyn Object>);
 
 impl Scanner {
     fn next(
-        self: Box<Self>,
+        self,
         scope: &mut Vec<Vars>,
     ) -> Result<(Box<Self>, String), Box<dyn std::error::Error>> {
         let t = self
@@ -129,7 +129,7 @@ impl Object for Scanner {
                 let r = r.1;
                 Ok(Box::new(vec![
                     self as Box<dyn Object>,
-                    r.unwrap_or(Box::new("".to_string())),
+                    r.unwrap_or_else(|| Box::new("".to_string())),
                 ]))
             }
 

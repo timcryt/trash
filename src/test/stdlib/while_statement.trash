@@ -1,11 +1,9 @@
 $set list ( 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 )
-$set not {@if $1 {false} else {true}}
-
 $set x ""
 
 $set stdout [$stdout [
     [
-        @while ((@list) $list ()) { @not [$1 is_empty] } {
+        @while ((@list) $list ()) { [$1 is_empty] not } {
             $set (list r) [$1 pop] 
             $set nlist [$2 push $r]
             ((@list) $list $nlist)
