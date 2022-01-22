@@ -126,10 +126,10 @@ impl Object for Vec<Box<dyn Object>> {
                     Ok(Box::new(vec![self as Box<dyn Object>, el]))
                 }
 
-                "is_empty" => Ok(Box::new(self.is_empty().to_string())),
+                "is_empty" => Ok(Box::new(self.is_empty())),
 
                 "_is_empty" => {
-                    let r = Box::new(self.is_empty().to_string());
+                    let r = Box::new(self.is_empty());
                     Ok(Box::new(vec![self as Box<dyn Object>, r]))
                 }
 
