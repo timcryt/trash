@@ -53,16 +53,15 @@ impl Object for Int {
 pub struct Asc;
 
 impl Object for Asc {
-
     fn clone(&self) -> error::TrashResult {
         Ok(Box::new(Asc))
     }
 
     fn call(self: Box<Self>, mut params: Vars, _scope: &mut Vec<Vars>) -> error::TrashResult {
         match params.get("1").map(|x| x.to_string()) {
-            Some(chr) => {
-                Ok(Int::int_obj(Box::new(chr.bytes().next().map(|x| x as i64).unwrap_or(-1)))?)
-            }
+            Some(chr) => Ok(Int::int_obj(Box::new(
+                chr.bytes().next().map(|x| x as i64).unwrap_or(-1),
+            ))?),
 
             None => Ok(Box::new(Asc)),
         }
@@ -104,15 +103,12 @@ impl Object for i64 {
                     let n = params.get("2").ok_or(TrashError::NotEnoughArgs(0, 1))?;
                     let num = Int::int(n)
                         .map_err(|e| TrashError::UnexpectedType("int".to_string(), e))?;
-                    Ok(Box::new(
-                        match op {
-                            "eq" => *self == num,
-                            "gt" => *self > num,
-                            "lt" => *self < num,
-                            _ => unreachable!(),
-                        }
-                        .to_string(),
-                    ))
+                    Ok(Box::new(match op {
+                        "eq" => *self == num,
+                        "gt" => *self > num,
+                        "lt" => *self < num,
+                        _ => unreachable!(),
+                    }))
                 }
 
                 "chr" => {

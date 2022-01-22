@@ -1,23 +1,19 @@
 "Simple unoptimized brainfuck interpreter"
 
-$set and {@if $1 [@if $2 true else false] else false}
-$set or {@if $1 true else [@if $2 true else false]}
-$set not {@if $1 false else true}
-
 "Brainfuck code inputting"
-$set (stdin code) [@while (true $stdin ()) {$1} {
+$set (stdin code) [@while ([@bool true] $stdin ()) {$1} {
     $set (stdin code) ($1 $2)
     $set (stdin char) [[$stdin read] with 1 {@asc $1}]
-    $set f [@or [@char eq "-1"] [@char eq 33]]
+    $set f [[@char eq "-1"] or [@char eq 33]]
     $set code [@if @f <{$code} code> else <{$code push [@char chr]} code>]
-    ([@not $f] $stdin $code)
+    ([$f not] $stdin $code)
 }]
 
 $set (code len) [[$code push " "] _len]
 $set (_ data _ _  code _) [@while ([@int 0] $code () "" [@int 0] () [@int 0]) {$1 lt @len} {
     $set (old data inst count code i) ($1 $2 $3 $4 $5 $6)
     $set (old new_inst) [$old without @i {(@1 $1)}]
-    @if {@and [@and [@inst eq "["] [@new_inst eq "-"]] [[@i add 1] lt @len]} <{
+    @if {[[@inst eq "["] and [@new_inst eq "-"]] and [[@i add 1] lt @len]} <{
         $set (old next2_inst) [$old without [@i add 1] {(@1 $1)}]
         @if {@next2_inst eq "]"} <{
             ([@i add 2] $old $data "" "" [$code with "-1" {"N"}] [$i add 2])
@@ -25,12 +21,12 @@ $set (_ data _ _  code _) [@while ([@int 0] $code () "" [@int 0] () [@int 0]) {$
             (@i $old $data "" "" $code $i)
         } old data inst count code i>
     } old data inst count code i> else <{
-        @if {@or [@inst eq ">"] [@or [@inst eq "<"] [@or [@inst eq "+"] [@inst eq "-"]]]} <{
+        @if {[@inst eq ">"] or [[@inst eq "<"] or [[@inst eq "+"] or [@inst eq "-"]]]} <{
             @if {@new_inst eq @inst} <{
                 ([@i add 1] $old $data $inst [$count add 1] $code [$i add 1])
             } old data inst count code i> else <{
                 $set (count inst) [
-                    @if {@or [@inst eq "<"] [@inst eq "-"]} {
+                    @if {[@inst eq "<"] or [@inst eq "-"]} {
                         ([[@int 0] sub @count] [@if {@inst eq "<"} ">" else "+"])
                     } else {
                         (@count @inst)
@@ -39,7 +35,7 @@ $set (_ data _ _  code _) [@while ([@int 0] $code () "" [@int 0] () [@int 0]) {$
                 (@i $old [$data push @count] @new_inst [@int 0] [$code push $inst] $i)
             } old data inst count code i>
         } old data inst count code i> else <{
-            @if {@or [@new_inst eq ">"] [@or [@new_inst eq "<"] [@or [@new_inst eq "+"] [@new_inst eq "-"]]]} <{
+            @if {[@new_inst eq ">"] or [[@new_inst eq "<"] or [[@new_inst eq "+"] or [@new_inst eq "-"]]]} <{
                 (@i $old $data @new_inst [@int 0] $code $i)
             } old data inst count code i> else <{
                 ([@i add 1] $old [$data push 0] @new_inst "" [$code push @new_inst] [$i add 1])
@@ -112,7 +108,7 @@ $set (i j (code l)) ([@int 0] [@int 0] [$code _len])
             @if {@inst eq "N"} <{
                 (@i @i @j $code $data [$mem with @j {[@int 0]}] $stdin $stdout)
             } code data mem stdin stdout> else <{
-                @if {@or [@and [@inst eq "["] [@f eq 0]] [@and [@inst eq "]"] [@f gt 0]]} <{
+                @if {[[@inst eq "["] and [@f eq 0]] or [[@inst eq "]"] and [@f gt 0]]} <{
                     (@count @count @j $code $data $mem $stdin $stdout)
                 } code data mem stdin stdout> else <{
                     @if {@inst eq "."} <{

@@ -1,3 +1,4 @@
+pub mod bool;
 pub mod files;
 pub mod floats;
 pub mod if_statement;
@@ -14,6 +15,7 @@ use std::{
 
 pub fn stdlib<T: Write + Any, U: Read + Any>(stdout: T, stdin: U) -> (Vars, Vec<Vars>) {
     let (mut s, mut v) = (Vars::new(), Vars::new());
+    s.add("bool".to_string(), Box::new(bool::Bool));
     s.add("if".to_string(), Box::new(if_statement::IfStatement));
     s.add(
         "while".to_string(),

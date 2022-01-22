@@ -36,10 +36,10 @@ impl Object for IfStatement {
             })?;
             (res, cond)
         };
-        match cond.to_string().as_str() {
-            "true" => then_call,
-            "false" => else_call,
-            other => panic!("Expected true or false, found {}", other),
+        match crate::stdlib::bool::Bool::bool_res(cond) {
+            Ok(true) => then_call,
+            Ok(false) => else_call,
+            Err(other) => panic!("Expected true or false, found {}", other),
         }
         .call(Vars::from_vec(cond_res), scope)
     }

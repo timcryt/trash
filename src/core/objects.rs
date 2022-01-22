@@ -50,7 +50,7 @@ impl Object for String {
                         .get("2")
                         .map(|x| x.to_string())
                         .ok_or(TrashError::NotEnoughArgs(0, 1))?;
-                    Ok(Box::new((*self == str_to_compare).to_string()))
+                    Ok(Box::new(*self == str_to_compare))
                 }
 
                 "_eq" => {
@@ -59,7 +59,7 @@ impl Object for String {
                         .map(|x| x.to_string())
                         .ok_or(TrashError::NotEnoughArgs(0, 1))?;
 
-                    let r = Box::new((*self == str_to_compare).to_string());
+                    let r = Box::new(*self == str_to_compare);
 
                     Ok(Box::new(vec![
                         self as Box<dyn Object>,

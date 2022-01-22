@@ -20,14 +20,12 @@ impl Object for WhileStatement {
             {
                 let condset = Vars::from_vec(first.to_tuple());
 
-                match Object::clone(condfunc.as_ref())?
-                    .call(condset, scope)?
-                    .to_string()
-                    .as_str()
-                {
-                    "true" => (),
-                    "false" => break Ok(Box::new(firstset.collect::<Vec<_>>())),
-                    other => {
+                match crate::stdlib::bool::Bool::bool_res(
+                    Object::clone(condfunc.as_ref())?.call(condset, scope)?,
+                ) {
+                    Ok(true) => (),
+                    Ok(false) => break Ok(Box::new(firstset.collect::<Vec<_>>())),
+                    Err(other) => {
                         return Err(TrashError::UnexpectedType(
                             "boolean".to_owned(),
                             other.to_owned(),
